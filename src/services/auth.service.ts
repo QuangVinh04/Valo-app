@@ -15,7 +15,7 @@ import { withTransaction } from '../database/transaction.js';
 import { generateTemporaryPassword } from '../utils/password.util.js';
 import { EmailService } from './email.service.js';
 import { hashString, compareString } from '../utils/auth.util.js';
-import type { UserWithGroupsAndPermissions } from '../repositories/user.repository.js';
+import type { UserFull } from '../repositories/user.repository.js';
 
 
 
@@ -33,7 +33,7 @@ export class AuthService {
     this.emailService = emailService;
   }
 
-  private getPermissionKeys(user: UserWithGroupsAndPermissions): string[] {
+  private getPermissionKeys(user: UserFull): string[] {
     return [
       ...new Set(
         user.userGroups.flatMap((userGroup) =>

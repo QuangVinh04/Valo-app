@@ -137,6 +137,20 @@ export class GroupRepository {
     });
   }
 
+  async findExistingIdsByIds(ids: string[]): Promise<string[]> {
+  const groups = this.prisma.group.findMany({
+    where: {
+      id: {
+        in: ids,
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+  return groups.then((results) => results.map((group) => group.id));
+}
+
   async addMembers(groupId: string, userIds: readonly string[]) {
     return this.prisma.userGroup.createMany({
       data: userIds.map((userId) => ({

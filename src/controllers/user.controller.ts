@@ -23,7 +23,9 @@ export class UserController {
     res: Response<ApiResponse<UserResponseDto[]>>,
     _next: NextFunction
   ) => {
-    const result = await this.userService.getUsers(getPaginationOptions(req.query));
+
+    const pagination = getPaginationOptions(req.query);
+    const result = await this.userService.getUsers(pagination);
     return sendSuccess(res, result.data, 'Users found', StatusCodes.OK, result.meta);
   });
 

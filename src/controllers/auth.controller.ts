@@ -103,10 +103,6 @@ export class AuthController {
     const payload = req.body as ChangePasswordRequestDto;
     const userId = req.user?.userId;
 
-    if (!userId) {
-      throw new Error('Authenticated user id is missing');
-    }
-
     await this.authService.changePassword(userId, payload);
 
     res.clearCookie('refreshToken', {

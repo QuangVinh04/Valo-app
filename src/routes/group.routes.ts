@@ -69,18 +69,5 @@ router.delete(
   groupController.removeMembers
 );
 
-router.post(
-  '/:id/users/:userId',
-  authenticate,
-  authorize(PermissionConstant.GROUP_ADD_USER.key),
-  groupController.addMembers
-);
-
-router.delete(
-  '/:id/users/:userId',
-  authenticate,
-  authorize(PermissionConstant.GROUP_DELETE_USER.key),
-  groupController.removeMembers
-);
 
 export default router;

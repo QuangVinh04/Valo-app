@@ -22,7 +22,7 @@ export class UserService {
     this.userRepo = userRepository;
     this.groupRepo = groupRepository;
     this.emailService = emailService;
-   }
+  }
 
   async getUsers(pagination: PaginationOptions) {
     const [users, totalItems] = await Promise.all([
@@ -129,11 +129,9 @@ export class UserService {
 
     const ids = [...new Set(groupIds.map((id) => id.trim()))].filter(Boolean);
 
-    const groups = await Promise.all(
-      ids.map((id) => this.groupRepo.findById(id))
-    );
+    const existingIds = await this.groupRepo.findExistingIdsByIds(ids);
 
-    if (groups.some((group) => !group)) {
+    if (existingIds.length !== ids.length) {
       throw new AppError(ErrorCode.GROUP_NOT_FOUND);
     }
 
