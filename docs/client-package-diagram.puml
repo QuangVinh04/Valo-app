@@ -1,0 +1,113 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title Mini AgentHub - Client Architecture (React)
+
+rectangle "Node.js API Server\n(REST + SSE)" as api
+
+package "React Client" as client {
+  package "Presentation Layer\n(src/presentation)" as p {
+    package "pages" as pages {
+      rectangle "LoginPage" as page_login
+      rectangle "RegisterPage" as page_register
+      rectangle "ChatPage" as page_chat
+      rectangle "ConversationPage" as page_conversation
+      rectangle "UserPage" as page_user
+      rectangle "GroupPage" as page_group
+      rectangle "SettingsPage" as page_settings
+    }
+
+    package "components" as components {
+      rectangle "AppLayout" as cmp_layout
+      rectangle "ChatWindow" as cmp_chat_window
+      rectangle "MessageList" as cmp_message_list
+      rectangle "MessageInput" as cmp_message_input
+      rectangle "ConversationList" as cmp_conversation_list
+      rectangle "ProtectedRoute" as cmp_protected_route
+      rectangle "ErrorBoundary" as cmp_error_boundary
+    }
+
+    package "router" as router {
+      rectangle "AppRouter" as router_app
+      rectangle "RouteGuards" as router_guards
+    }
+  }
+
+  package "Application Layer\n(src/application)" as a {
+    package "hooks" as hooks {
+      rectangle "useAuth" as hook_auth
+      rectangle "useConversations" as hook_conversations
+      rectangle "useChatStream" as hook_chat_stream
+      rectangle "usePermissions" as hook_permissions
+      rectangle "useSettings" as hook_settings
+    }
+
+    package "state" as state {
+      rectangle "auth.store" as state_auth
+      rectangle "chat.store" as state_chat
+      rectangle "conversation.store" as state_conversation
+      rectangle "ui.store" as state_ui
+    }
+
+    package "services" as services {
+      rectangle "auth.service" as svc_auth
+      rectangle "conversation.service" as svc_conversation
+      rectangle "chat.service" as svc_chat
+      rectangle "user.service" as svc_user
+      rectangle "group.service" as svc_group
+      rectangle "settings.service" as svc_settings
+    }
+  }
+
+  package "Data Access Layer\n(src/data)" as d {
+    package "api" as api_client {
+      rectangle "httpClient (Axios/Fetch)" as api_http
+      rectangle "auth.api" as api_auth
+      rectangle "conversation.api" as api_conversation
+      rectangle "chat.api (SSE)" as api_chat
+      rectangle "user.api" as api_user
+      rectangle "group.api" as api_group
+      rectangle "settings.api" as api_settings
+    }
+
+    package "storage" as storage {
+      rectangle "token.storage" as storage_token
+      rectangle "preference.storage" as storage_preference
+    }
+
+    package "mappers" as mappers {
+      rectangle "dto.mapper" as mapper_dto
+      rectangle "error.mapper" as mapper_error
+    }
+  }
+
+  package "Shared\n(src/shared)" as shared {
+    rectangle "types" as shared_types
+    rectangle "constants/permissions" as shared_permissions
+    rectangle "constants/routes" as shared_routes
+    rectangle "utils/formatters" as shared_formatters
+    rectangle "utils/validators" as shared_validators
+  }
+}
+
+pages --> components
+pages --> hooks
+components --> hooks
+router --> pages
+router --> components
+
+hooks --> state
+hooks --> services
+services --> api_client
+services --> mappers
+services --> storage
+
+api_client --> api : HTTP/SSE
+storage ..> state
+shared ..> p
+shared ..> a
+shared ..> d
+
+@enduml

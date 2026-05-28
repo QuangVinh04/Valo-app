@@ -1,0 +1,77 @@
+services:
+  app:
+    build: .
+    image: valo-app:local
+    container_name: valo-app
+    env_file: .env.docker
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - '4001:4001'
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules
+      - ./uploads:/usr/src/app/uploads
+    command: npm run dev
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4001/api/health >/dev/null 2>&1 || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - valo-network
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: valo-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck: # Thêm healthcheck để app biết chính xác khi nào database đã sẵn sàng nhận kết nối
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - valo-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: valo-redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - valo-network
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: valo-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    ports:
+      - '8081:8081'
+    depends_on:
+      - postgres
+    networks:
+      - valo-network
+    restart: unless-stopped
+
+networks:
+  valo-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:

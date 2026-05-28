@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String         @id @default(uuid()) @db.Uuid
+  fullName           String         @map("full_name")
+  email              String         @unique
+  password           String         @map("password")
+  conversations      Conversation[]
+  userGroups         UserGroup[]
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+  refreshToken       String?        @map("refresh_token")
+  mustChangePassword Boolean        @default(true) @map("must_change_password")
+
+  @@map("users")
+}
+
+model Conversation {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  title     String
+  messages  Message[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("conversations")
+}
+
+enum Role {
+  user
+  assistant
+  system
+}
+
+model Message {
+  id             String   @id @default(uuid()) @db.Uuid
+  conversationId String   @db.Uuid
+  senderType     Role     @default(user) @map("sender_type")
+  content        String
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@map("messages")
+}
+
+model Group {
+  id               String            @id @default(uuid()) @db.Uuid
+  name             String            @unique
+  description      String?
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  userGroups       UserGroup[]
+  groupPermissions GroupPermission[]
+
+  @@map("group")
+}
+
+model UserGroup {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  groupId    String   @map("group_id") @db.Uuid
+  assignedAt DateTime @default(now()) @map("assigned_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
+  @@map("user_group")
+}
+
+model GroupPermission {
+  id            String @id @default(uuid()) @db.Uuid
+  groupId       String @map("group_id") @db.Uuid
+  permissionKey String @map("permission_key")
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, permissionKey])
+  @@index([groupId])
+  @@map("group_permission")
+}

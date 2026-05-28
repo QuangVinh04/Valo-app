@@ -1,0 +1,160 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName Arial
+
+title Mini AgentHub - 3-Layer Detailed Package Diagram (Folder-Oriented)
+
+rectangle "Client (React/Web)" as client
+rectangle "LLMs\n(Groq / Flowise)" as llm
+rectangle "PostgreSQL" as postgres
+
+package "Node.js Express Server" as server {
+
+  package "1) Presentation Layer\n(src/presentation)" as presentation {
+    package "routes" as p_routes {
+      class "auth.routes.ts"
+      class "conversation.routes.ts"
+      class "chat.routes.ts"
+      class "group.routes.ts"
+      class "user.routes.ts"
+      class "settings.routes.ts"
+      class "health.routes.ts"
+      class "index.ts"
+    }
+
+    package "controllers" as p_controllers {
+      class "auth.controller.ts"
+      class "conversation.controller.ts"
+      class "chat.controller.ts"
+      class "group.controller.ts"
+      class "user.controller.ts"
+      class "settings.controller.ts"
+      class "health.controller.ts"
+    }
+
+    package "middlewares" as p_mw {
+      class "auth.middleware.ts"
+      class "rbac.middleware.ts"
+      class "rate-limit.middleware.ts"
+      class "request-logger.middleware.ts"
+      class "error-handler.middleware.ts"
+      class "validation.middleware.ts"
+    }
+
+    package "validators" as p_validators {
+      class "auth.validator.ts"
+      class "conversation.validator.ts"
+      class "chat.validator.ts"
+      class "group.validator.ts"
+      class "user.validator.ts"
+      class "settings.validator.ts"
+    }
+  }
+
+  package "2) Business Logic Layer\n(src/business)" as business {
+    package "services" as b_services {
+      class "auth.service.ts"
+      class "conversation.service.ts"
+      class "chat.service.ts"
+      class "group.service.ts"
+      class "user.service.ts"
+      class "settings.service.ts"
+    }
+
+    package "use-cases" as b_usecases {
+      class "register-login.usecase.ts"
+      class "manage-group-user.usecase.ts"
+      class "chat-streaming.usecase.ts"
+      class "conversation-crud.usecase.ts"
+      class "account-settings.usecase.ts"
+    }
+
+    package "policies" as b_policies {
+      class "permission-matrix.policy.ts"
+      class "conversation-ownership.policy.ts"
+      class "audit.policy.ts"
+    }
+
+    package "integrations" as b_integrations {
+      class "groq.adapter.ts"
+      class "flowise.adapter.ts"
+      class "email.adapter.ts"
+    }
+
+    package "domain" as b_domain {
+      class "User"
+      class "Group"
+      class "Permission"
+      class "Conversation"
+      class "Message"
+      class "UserPreference"
+    }
+  }
+
+  package "3) Data Access Layer\n(src/data)" as data_access {
+    package "repositories" as d_repos {
+      class "user.repository.ts"
+      class "group.repository.ts"
+      class "permission.repository.ts"
+      class "conversation.repository.ts"
+      class "message.repository.ts"
+      class "audit.repository.ts"
+      class "settings.repository.ts"
+    }
+
+    package "models" as d_models {
+      class "user.model.ts"
+      class "group.model.ts"
+      class "conversation.model.ts"
+      class "message.model.ts"
+      class "audit.model.ts"
+    }
+
+    package "orm" as d_orm {
+      class "prisma.client.ts"
+      class "schema.prisma"
+      class "migrations"
+    }
+
+    package "cache" as d_cache {
+      class "redis.client.ts"
+      class "session.store.ts"
+    }
+  }
+
+  package "shared" as shared {
+    class "config/env.ts"
+    class "utils/jwt.ts"
+    class "utils/hash.ts"
+    class "utils/logger.ts"
+    class "utils/ApiResponse.ts"
+    class "utils/AppError.ts"
+    class "types"
+    class "constants/permission-keys.ts"
+  }
+}
+
+client --> p_routes : HTTP request/response
+p_routes --> p_controllers : route matching
+p_controllers --> b_services : call business logic
+p_mw --> p_controllers : auth/rbac/validation
+p_validators --> p_controllers : validate input
+
+b_services --> b_usecases
+b_usecases --> b_policies : enforce RBAC + isolation
+b_usecases --> d_repos : query/update data
+b_usecases --> b_integrations : call external services
+b_services --> b_domain
+
+b_integrations --> llm : ask/stream
+
+d_repos --> d_orm : ORM operations
+d_repos --> d_cache : cache/session
+d_orm --> postgres : read/write
+
+shared ..> presentation
+shared ..> business
+shared ..> data_access
+
+@enduml

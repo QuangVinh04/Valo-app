@@ -1,0 +1,3 @@
+npx prisma format
+
+// format file schema.prisma enterprise

@@ -1,22 +1,13 @@
-# Thư viện Node.js (Rất nặng, không cần đẩy lên vì có thể cài lại bằng npm install)
 node_modules/
-
-# File chứa thông tin bảo mật (Mật khẩu DB, Secret Key...)
 .env
-
-# Các file log khi chạy ứng dụng
+.env.docker
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-
-# Các thư mục chứa file upload tạm thời của người dùng
 public/uploads/
-
-# Các file cấu hình của trình soạn thảo code (VS Code, WebStorm)
+uploads/
 .vscode/
 .idea/
 .DS_Store
-
-# File build (nếu bạn dùng React/Vue sau này)
 dist/
 build/
