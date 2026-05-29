@@ -5,7 +5,7 @@ import AppError from '../utils/app-error.js';
 import { verifyToken } from '../utils/jwt.util.js';
 
 export interface AuthenticatedRequest extends Request {
-  user?: {
+  user: {
     userId: string;
     permissions: string[];
   };

@@ -8,12 +8,15 @@ import { GroupRepository } from '../repositories/group.repository.js';
 import { UserRepository } from '../repositories/user.repository.js';
 import { UserService } from '../services/user.service.js';
 import { createUserSchema, updateUserSchema } from '../types/user.type.js';
+import { email } from 'zod';
+import EmailService from '../services/email.service.js';
 
 const router = Router();
 const prismaService = PrismaService.getInstance();
 const userRepository = new UserRepository(prismaService.client);
 const groupRepository = new GroupRepository(prismaService.client);
-const userService = new UserService(userRepository, groupRepository);
+const emailService = new EmailService();
+const userService = new UserService(userRepository, groupRepository, emailService);
 const userController = new UserController(userService);
 
 router.get(

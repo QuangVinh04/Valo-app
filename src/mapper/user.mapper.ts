@@ -1,8 +1,8 @@
-import type { UserWithGroupsAndPermissions } from '../repositories/user.repository.js';
+import type { UserFull } from '../repositories/user.repository.js';
 import type { UserResponseDto } from '../types/user.type.js';
 
 export class UserMapper {
-  static toUserResponseDto(user: UserWithGroupsAndPermissions): UserResponseDto {
+  static toUserResponseDto(user: UserFull): UserResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,

@@ -101,6 +101,14 @@ export const ErrorCode = {
     code: 5002,
     message: 'Group name already in use',
     statusCode: StatusCodes.CONFLICT
+  },
+
+  // Conversation & message
+
+  CONVERSATION_NOT_FOUND: {
+    code: 6001,
+    message: 'Conversation not found',
+    statusCode: StatusCodes.NOT_FOUND
   }
 
 } as const;

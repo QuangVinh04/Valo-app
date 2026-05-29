@@ -18,15 +18,6 @@ export class GroupController {
     this.groupService = groupService;
   }
 
-  private getIdParam(req: Request): string {
-    const id = req.params.id;
-    return Array.isArray(id) ? id[0] : id;
-  }
-
-  private getUserIdParam(req: Request): string {
-    const userId = req.params.userId;
-    return Array.isArray(userId) ? userId[0] : userId;
-  }
 
   list = catchAsync(async (
     req: Request,
@@ -42,7 +33,8 @@ export class GroupController {
     res: Response<ApiResponse<GroupResponseDto>>,
     _next: NextFunction
   ) => {
-    const result = await this.groupService.getGroupById(this.getIdParam(req));
+    const id = req.params.id.toString();
+    const result = await this.groupService.getGroupById(id);
     return sendSuccess(res, result, 'Group found', StatusCodes.OK);
   });
 
@@ -62,7 +54,8 @@ export class GroupController {
     _next: NextFunction
   ) => {
     const payload = req.body as UpdateGroupRequestDto;
-    const result = await this.groupService.updateGroup(this.getIdParam(req), payload);
+    const id = req.params.id.toString();
+    const result = await this.groupService.updateGroup(id, payload);
     return sendSuccess(res, result, 'Group updated', StatusCodes.OK);
   });
 
@@ -71,7 +64,8 @@ export class GroupController {
     res: Response<ApiResponse<null>>,
     _next: NextFunction
   ) => {
-    await this.groupService.deleteGroup(this.getIdParam(req));
+    const id = req.params.id.toString();
+    await this.groupService.deleteGroup(id);
     return sendSuccess(res, null, 'Group deleted', StatusCodes.OK);
   });
 
@@ -82,7 +76,8 @@ export class GroupController {
     _next: NextFunction
   ) => {
     const payload = req.body as GroupMembersRequestDto;
-    const result = await this.groupService.addMembers(this.getIdParam(req), payload.userIds);
+    const id = req.params.id.toString();
+    const result = await this.groupService.addMembers(id, payload.userIds);
     return sendSuccess(res, result, 'Members added to group', StatusCodes.OK);
   });
 
@@ -94,7 +89,8 @@ export class GroupController {
     _next: NextFunction
   ) => {
     const payload = req.body as GroupMembersRequestDto;
-    const result = await this.groupService.removeMembers(this.getIdParam(req), payload.userIds);
+    const id = req.params.id.toString();
+    const result = await this.groupService.removeMembers(id, payload.userIds);
     return sendSuccess(res, result, 'Members removed from group', StatusCodes.OK);
   });
 }

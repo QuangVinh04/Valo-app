@@ -1,4 +1,4 @@
-import { BASE_AUTH_PATH, BASE_GROUP_PATH } from '../routes.js';
+import { BASE_AUTH_PATH, BASE_CONVERSATION_PATH, BASE_GROUP_PATH, BASE_USER_PATH } from '../routes.js';
 
 export const swaggerDocument = {
   openapi: '3.0.3',
@@ -22,6 +22,14 @@ export const swaggerDocument = {
       name: 'Groups',
       description: 'Group and permission endpoints',
     },
+    {
+      name: 'Users',
+      description: 'User management endpoints',
+    },
+    {
+      name: 'Conversations',
+      description: 'Conversation management endpoints',
+    },
   ],
   components: {
     securitySchemes: {
@@ -41,6 +49,15 @@ export const swaggerDocument = {
             type: 'object',
             nullable: true,
           },
+        },
+      },
+      PaginationMeta: {
+        type: 'object',
+        properties: {
+          page: { type: 'integer', example: 1 },
+          limit: { type: 'integer', example: 10 },
+          totalItems: { type: 'integer', example: 42 },
+          totalPages: { type: 'integer', example: 5 },
         },
       },
       RegisterRequest: {
@@ -142,6 +159,91 @@ export const swaggerDocument = {
           updatedAt: { type: 'string', format: 'date-time' },
         },
       },
+      UserGroupLite: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          name: { type: 'string', example: 'user' },
+          description: { type: 'string', nullable: true, example: 'Default users' },
+        },
+      },
+      UserRequest: {
+        type: 'object',
+        required: ['fullName', 'email'],
+        properties: {
+          fullName: { type: 'string', example: 'Nguyen Van B' },
+          email: { type: 'string', format: 'email', example: 'b@example.com' },
+          groupIds: {
+            type: 'array',
+            items: { type: 'string', format: 'uuid' },
+          },
+        },
+      },
+      UpdateUserRequest: {
+        type: 'object',
+        properties: {
+          fullName: { type: 'string', example: 'Nguyen Van B Updated' },
+          groupIds: {
+            type: 'array',
+            items: { type: 'string', format: 'uuid' },
+          },
+        },
+      },
+      UserResponse: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          fullName: { type: 'string', example: 'Nguyen Van B' },
+          email: { type: 'string', format: 'email', example: 'b@example.com' },
+          groups: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/UserGroupLite' },
+          },
+          mustChangePassword: { type: 'boolean', example: true },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      ConversationMessageResponse: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          content: { type: 'string', example: 'Xin chao' },
+          senderType: { type: 'string', enum: ['user', 'assistant', 'system'] },
+          modelName: { type: 'string', nullable: true, example: 'gpt-4o-mini' },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      CreateConversationRequest: {
+        type: 'object',
+        required: ['title', 'modelName'],
+        properties: {
+          title: { type: 'string', example: 'New conversation' },
+          modelName: { type: 'string', example: 'gpt-4o-mini' },
+        },
+      },
+      UpdateConversationRequest: {
+        type: 'object',
+        properties: {
+          title: { type: 'string', example: 'Updated title' },
+          modelName: { type: 'string', example: 'gpt-4.1-mini' },
+        },
+      },
+      ConversationResponse: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          title: { type: 'string', example: 'New conversation' },
+          modelName: { type: 'string', example: 'gpt-4o-mini' },
+          userId: { type: 'string', format: 'uuid' },
+          messages: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/ConversationMessageResponse' },
+          },
+          createdAt: { type: 'string', format: 'date-time' },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
       ApiGroupResponse: {
         type: 'object',
         properties: {
@@ -159,6 +261,7 @@ export const swaggerDocument = {
             type: 'array',
             items: { $ref: '#/components/schemas/GroupResponse' },
           },
+          meta: { $ref: '#/components/schemas/PaginationMeta' },
         },
       },
       ApiAuthResponse: {
@@ -175,6 +278,46 @@ export const swaggerDocument = {
           success: { type: 'boolean', example: true },
           message: { type: 'string', example: 'Password changed successfully' },
           data: { nullable: true, example: null },
+        },
+      },
+      ApiUserResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          message: { type: 'string', example: 'User found' },
+          data: { $ref: '#/components/schemas/UserResponse' },
+        },
+      },
+      ApiUserListResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          message: { type: 'string', example: 'Users found' },
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/UserResponse' },
+          },
+          meta: { $ref: '#/components/schemas/PaginationMeta' },
+        },
+      },
+      ApiConversationResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          message: { type: 'string', example: 'Conversation found' },
+          data: { $ref: '#/components/schemas/ConversationResponse' },
+        },
+      },
+      ApiConversationListResponse: {
+        type: 'object',
+        properties: {
+          success: { type: 'boolean', example: true },
+          message: { type: 'string', example: 'Conversations found' },
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/ConversationResponse' },
+          },
+          meta: { $ref: '#/components/schemas/PaginationMeta' },
         },
       },
     },
@@ -304,6 +447,10 @@ export const swaggerDocument = {
         tags: ['Groups'],
         summary: 'List groups',
         security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 } },
+        ],
         responses: {
           '200': {
             description: 'Groups found',
@@ -432,6 +579,161 @@ export const swaggerDocument = {
           '401': { description: 'Unauthorized' },
           '403': { description: 'Forbidden' },
           '404': { description: 'Group not found' },
+        },
+      },
+    },
+    [BASE_USER_PATH]: {
+      get: {
+        tags: ['Users'],
+        summary: 'List users',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 } },
+        ],
+        responses: {
+          '200': {
+            description: 'Users found',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiUserListResponse' } } },
+          },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+      post: {
+        tags: ['Users'],
+        summary: 'Create user',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/UserRequest' } } },
+        },
+        responses: {
+          '201': {
+            description: 'User created',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiUserResponse' } } },
+          },
+          '400': { description: 'Validation failed' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '409': { description: 'Conflict' },
+        },
+      },
+    },
+    [`${BASE_USER_PATH}/{id}`]: {
+      get: {
+        tags: ['Users'],
+        summary: 'Get user by id',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'User found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiUserResponse' } } } },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'User not found' },
+        },
+      },
+      put: {
+        tags: ['Users'],
+        summary: 'Update user',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/UpdateUserRequest' } } },
+        },
+        responses: {
+          '200': { description: 'User updated', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiUserResponse' } } } },
+          '400': { description: 'Validation failed' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'User not found' },
+        },
+      },
+      delete: {
+        tags: ['Users'],
+        summary: 'Delete user',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'User deleted', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiNullResponse' } } } },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'User not found' },
+        },
+      },
+    },
+    [BASE_CONVERSATION_PATH]: {
+      get: {
+        tags: ['Conversations'],
+        summary: 'List conversations',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
+          { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 } },
+        ],
+        responses: {
+          '200': { description: 'Conversations found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiConversationListResponse' } } } },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+      post: {
+        tags: ['Conversations'],
+        summary: 'Create conversation',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateConversationRequest' } } },
+        },
+        responses: {
+          '201': { description: 'Conversation created', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiConversationResponse' } } } },
+          '400': { description: 'Validation failed' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+        },
+      },
+    },
+    [`${BASE_CONVERSATION_PATH}/{id}`]: {
+      get: {
+        tags: ['Conversations'],
+        summary: 'Get conversation by id',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Conversation found', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiConversationResponse' } } } },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Conversation not found' },
+        },
+      },
+      put: {
+        tags: ['Conversations'],
+        summary: 'Update conversation',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/UpdateConversationRequest' } } },
+        },
+        responses: {
+          '200': { description: 'Conversation updated', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiConversationResponse' } } } },
+          '400': { description: 'Validation failed' },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Conversation not found' },
+        },
+      },
+      delete: {
+        tags: ['Conversations'],
+        summary: 'Delete conversation',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Conversation deleted', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiNullResponse' } } } },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'Conversation not found' },
         },
       },
     },
