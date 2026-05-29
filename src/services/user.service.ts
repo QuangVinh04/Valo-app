@@ -64,13 +64,14 @@ export class UserService {
     const user = await withTransaction(async (tx) => {
       const userRepo = new UserRepository(tx);
 
-      return userRepo.createUser({
+      const result = await userRepo.createUser({
         fullName: payload.fullName.trim(),
         email,
         password: await hashString(temporaryPassword),
         mustChangePassword: true,
         groupIds,
       });
+      return result;
     });
 
     await this.emailService.sendTemporaryPasswordEmail({

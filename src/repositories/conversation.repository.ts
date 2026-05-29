@@ -5,7 +5,11 @@ import { PrismaClient, Prisma, Conversation } from "@prisma/client";
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
 const conversationInclude = {
-  messages: true,
+  messages: {
+    orderBy: {
+      createdAt: 'asc'
+    },
+  },
 } satisfies Prisma.ConversationInclude;
 
 export type ConversationFull = Prisma.ConversationGetPayload<{
