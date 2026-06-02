@@ -5,22 +5,34 @@ import { PermissionConstant } from '../constants/permission.constant.js';
 import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
 import { ConversationRepository } from '../repositories/conversation.repository.js';
+import MessageRepository from '../repositories/message.repository.js';
 import { UserRepository } from '../repositories/user.repository.js';
+import AiService from '../services/ai.service.js';
 import MessageService from '../services/message.service.js';
-import { createMessageSchema, sendMessageSchema } from '../types/message.type.js';
+import { sendMessageSchema } from '../types/message.type.js';
 
 const router = Router();
 const prismaService = PrismaService.getInstance();
 const conversationRepository = new ConversationRepository(prismaService.client);
 const userRepository = new UserRepository(prismaService.client);
-const messageService = new MessageService(conversationRepository, userRepository);
-const messageController = new MessageController(messageService);
+const messageRepository = new MessageRepository(prismaService.client);
+const messageService = new MessageService(conversationRepository, userRepository, messageRepository);
+const aiService = new AiService();
+const messageController = new MessageController(messageService, aiService);
+
+router.post(
+  '/conversations/:id/stream',
+  authenticate,
+  authorize(PermissionConstant.CHAT.key),
+  validateRequest(sendMessageSchema),
+  messageController.sendMessageStream
+);
 
 router.post(
   '/conversations/:id',
   authenticate,
   authorize(PermissionConstant.CHAT.key),
-  validateRequest(createMessageSchema),
+  validateRequest(sendMessageSchema),
   messageController.sendMessage
 );
 

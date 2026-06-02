@@ -26,6 +26,16 @@ export class MessageRepository {
       },
     });
   }
+
+  async findRecentByConversationId(conversationId: string, take = 10) {
+    const messages = await this.prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'desc' },
+      take,
+    });
+
+    return messages.reverse();
+  }
 }
 
 export default MessageRepository;
