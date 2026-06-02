@@ -1,11 +1,10 @@
 import { NextFunction, Response } from 'express';
-import { StatusCodes } from 'http-status-codes';
 import AiService from '../services/ai.service.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import MessageService from '../services/message.service.js';
-import { SendMessageRequestDto, SendMessageResponseDto } from '../types/message.type.js';
-import { ApiResponse, sendSuccess } from '../utils/api-response.js';
-import catchAsync from '../utils/catch-async.js';
+import { SendMessageRequestDto } from '../types/message.type.js';
+import env from '../config/env.js';
+import logger from '../utils/logger.util.js';
 
 export class MessageController {
   private readonly messageService: MessageService;
@@ -16,60 +15,44 @@ export class MessageController {
     this.aiService = aiService;
   }
 
-  sendMessage = catchAsync(async (
-    req: AuthenticatedRequest,
-    res: Response<ApiResponse<SendMessageResponseDto>>,
-    _next: NextFunction
-  ) => {
-    const userId = req.user.userId;
-    const conversationId = req.params.id.toString();
-    const payload = req.body as SendMessageRequestDto;
-    const result = await this.messageService.sendMessage(userId, conversationId, payload);
-    return sendSuccess(res, result, 'Message sent successfully', StatusCodes.OK);
-  });
-
-  sendMessageAuto = catchAsync(async (
-    req: AuthenticatedRequest,
-    res: Response<ApiResponse<SendMessageResponseDto>>,
-    _next: NextFunction
-  ) => {
-    const userId = req.user.userId;
-    const payload = req.body as SendMessageRequestDto;
-    const result = await this.messageService.sendMessageAutoConversation(userId, payload);
-    return sendSuccess(res, result, 'Message sent successfully', StatusCodes.OK);
-  });
-
   sendMessageStream = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     const userId = req.user.userId;
-    const conversationId = req.params.id.toString();
+    const conversationId = req.params.id?.toString();
     const payload = req.body as SendMessageRequestDto;
     const abortController = new AbortController();
     let fullContent = '';
 
+    const handleClientClose = () => {
+      abortController.abort();
+    };
+
     try {
-      const { userMessage, context } =
-        await this.messageService.prepareMessageStream(
+
+      res.on('close', handleClientClose);
+
+      const prepared = await this.messageService.prepareMessageStream(
           userId,
-          conversationId,
-          payload
-        );
+          payload,
+          conversationId
+        )
 
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
       res.flushHeaders();
 
-      res.on('close', () => abortController.abort());
-
       res.write(`event: ready\n`);
-      res.write(`data: ${JSON.stringify({ userMessage })}\n\n`);
+      res.write(`data: ${JSON.stringify({
+        conversationId: prepared.conversationId,
+        userMessage: prepared.userMessage,
+      })}\n\n`);
 
       for await (const chunk of this.aiService.stream(
-        context,
+        prepared.context,
         payload.modelName,
         abortController.signal
       )) {
@@ -81,25 +64,43 @@ export class MessageController {
       if (abortController.signal.aborted) return;
 
       const assistantMessage = await this.messageService.saveAssistantMessage(
-        conversationId,
+        prepared.conversationId,
         fullContent,
         payload.modelName
       );
 
       res.write(`event: done\n`);
-      res.write(`data: ${JSON.stringify({ assistantMessage })}\n\n`);
+      res.write(`data: ${JSON.stringify({
+        conversationId: prepared.conversationId,
+        assistantMessage,
+      })}\n\n`);
       res.end();
+
     } catch (error) {
+      logger.error('Message stream failed', {
+        error,
+        userId,
+        conversationId,
+        modelName: payload.modelName,
+      });
+
       if (!res.headersSent) {
         next(error);
         return;
       }
 
       res.write(`event: error\n`);
-      res.write(`data: ${JSON.stringify({ message: 'Stream failed' })}\n\n`);
+      res.write(`data: ${JSON.stringify({
+        message: 'Stream failed',
+        detail: env.NODE_ENV === 'production' ? undefined : this.getErrorMessage(error),
+      })}\n\n`);
       res.end();
     }
   };
+
+  private getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Unknown stream error';
+  }
 }
 
 export default MessageController;

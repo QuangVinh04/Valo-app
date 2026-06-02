@@ -20,8 +20,9 @@ const messageService = new MessageService(conversationRepository, userRepository
 const aiService = new AiService();
 const messageController = new MessageController(messageService, aiService);
 
+
 router.post(
-  '/conversations/:id/stream',
+  '/conversations/:id',
   authenticate,
   authorize(PermissionConstant.CHAT.key),
   validateRequest(sendMessageSchema),
@@ -29,19 +30,11 @@ router.post(
 );
 
 router.post(
-  '/conversations/:id',
-  authenticate,
-  authorize(PermissionConstant.CHAT.key),
-  validateRequest(sendMessageSchema),
-  messageController.sendMessage
-);
-
-router.post(
   '/',
   authenticate,
   authorize(PermissionConstant.CHAT.key),
   validateRequest(sendMessageSchema),
-  messageController.sendMessageAuto
+  messageController.sendMessageStream
 );
 
 export default router;

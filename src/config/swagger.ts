@@ -210,7 +210,7 @@ export const swaggerDocument = {
           id: { type: 'string', format: 'uuid' },
           content: { type: 'string', example: 'Xin chao' },
           senderType: { type: 'string', enum: ['user', 'assistant', 'system'] },
-          modelName: { type: 'string', nullable: true, example: 'gpt-4o-mini' },
+          modelName: { type: 'string', nullable: true, example: 'llama-3.3-70b-versatile' },
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
@@ -219,14 +219,14 @@ export const swaggerDocument = {
         required: ['title', 'modelName'],
         properties: {
           title: { type: 'string', example: 'New conversation' },
-          modelName: { type: 'string', example: 'gpt-4o-mini' },
+          modelName: { type: 'string', example: 'llama-3.3-70b-versatile' },
         },
       },
       UpdateConversationRequest: {
         type: 'object',
         properties: {
           title: { type: 'string', example: 'Updated title' },
-          modelName: { type: 'string', example: 'gpt-4.1-mini' },
+          modelName: { type: 'string', example: 'llama-3.1-8b-instant' },
         },
       },
       ConversationResponse: {
@@ -234,7 +234,7 @@ export const swaggerDocument = {
         properties: {
           id: { type: 'string', format: 'uuid' },
           title: { type: 'string', example: 'New conversation' },
-          modelName: { type: 'string', example: 'gpt-4o-mini' },
+          modelName: { type: 'string', example: 'llama-3.3-70b-versatile' },
           userId: { type: 'string', format: 'uuid' },
           messages: {
             type: 'array',

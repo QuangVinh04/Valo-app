@@ -16,7 +16,10 @@ const env = {
   MAIL_SECURE: process.env.SMTP_SECURE === 'true',
   MAIL_USER: process.env.SMTP_USER,
   MAIL_PASS: process.env.SMTP_PASS,
-  MAIL_FROM: process.env.SMTP_FROM
+  MAIL_FROM: process.env.SMTP_FROM,
+  AI_PROVIDER: process.env.AI_PROVIDER || 'groq',
+  GROQ_API_KEY: process.env.GROQ_API_KEY,
+  GROQ_BASE_URL: process.env.GROQ_BASE_URL || 'https://api.groq.com'
 };
 
 const requiredVars = ['DATABASE_URL', 'REDIS_URL', 'JWT_SECRET', 'MAIL_HOST', 'MAIL_PORT', 'MAIL_USER', 'MAIL_PASS'] as const;
