@@ -20,6 +20,11 @@ export type RegisterRequestDto = z.infer<typeof registerSchema>;
 export type LoginRequestDto = z.infer<typeof loginSchema>;
 export type ChangePasswordRequestDto = z.infer<typeof changePasswordSchema>;
 
+export type UserSettingsDto = {
+  theme: 'dark' | 'light';
+  language: 'vi' | 'en';
+};
+
 export interface RefreshTokenRequestDto {
   refreshToken: string;
 }
@@ -28,6 +33,8 @@ export interface AuthResponseDto {
   id: string;
   fullName: string;
   email: string;
+  phoneNumber: string | null;
+  address: string | null;
   groups: Array<{
     id: string;
     name: string;
@@ -39,4 +46,5 @@ export interface AuthResponseDto {
   updatedAt: Date;
   accessToken: string | null;
   permissions: string[];
+  settings: UserSettingsDto;
 }

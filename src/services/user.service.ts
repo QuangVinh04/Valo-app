@@ -3,7 +3,7 @@ import { withTransaction } from '../database/transaction.js';
 import { UserMapper } from '../mapper/user.mapper.js';
 import { GroupRepository } from '../repositories/group.repository.js';
 import { UserRepository } from '../repositories/user.repository.js';
-import type { CreateUserRequestDto, UpdateUserRequestDto } from '../types/user.type.js';
+import type { CreateUserRequestDto, UpdateUserRequestDto, UserProfileDto, UserSettingsDto } from '../types/user.type.js';
 import AppError from '../utils/app-error.js';
 import { hashString } from '../utils/auth.util.js';
 import { generateTemporaryPassword } from '../utils/password.util.js';
@@ -102,6 +102,34 @@ export class UserService {
       });
 
       return result;
+    });
+
+    return UserMapper.toUserResponseDto(updatedUser);
+  }
+
+  async updateSettings(userId: string, payload: UserSettingsDto) {
+    const user = await this.userRepo.findById(userId);
+    if (!user) {
+      throw new AppError(ErrorCode.USER_NOT_FOUND);
+    }
+
+    const updatedUser = await this.userRepo.updateSettings(userId, {
+      theme: payload.theme,
+      language: payload.language
+    });
+
+    return UserMapper.toUserResponseDto(updatedUser).settings;
+  }
+
+  async updateProfile(userId: string, payload: UserProfileDto) {
+    const user = await this.userRepo.findById(userId);
+    if (!user) {
+      throw new AppError(ErrorCode.USER_NOT_FOUND);
+    }
+
+    const updatedUser = await this.userRepo.updateProfile(userId, {
+      ...(payload.phoneNumber !== undefined ? { phoneNumber: payload.phoneNumber.trim() || null } : {}),
+      ...(payload.address !== undefined ? { address: payload.address.trim() || null } : {})
     });
 
     return UserMapper.toUserResponseDto(updatedUser);

@@ -31,6 +31,16 @@ export interface UpdateUserInput {
   groupIds?: readonly string[];
 }
 
+export interface UserSettingsInput {
+  theme: 'dark' | 'light';
+  language: 'vi' | 'en';
+}
+
+export interface UserProfileInput {
+  phoneNumber?: string | null;
+  address?: string | null;
+}
+
 
 export class UserRepository {
   private readonly prisma: DbClient;
@@ -125,6 +135,22 @@ export class UserRepository {
           },
         }),
       },
+      include: userInclude
+    });
+  }
+
+  async updateSettings(id: string, settings: UserSettingsInput): Promise<UserFull> {
+    return this.prisma.user.update({
+      where: { id },
+      data: { settings: settings as unknown as Prisma.InputJsonObject },
+      include: userInclude
+    });
+  }
+
+  async updateProfile(id: string, input: UserProfileInput): Promise<UserFull> {
+    return this.prisma.user.update({
+      where: { id },
+      data: input,
       include: userInclude
     });
   }

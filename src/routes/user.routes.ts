@@ -7,8 +7,7 @@ import { validateRequest } from '../middlewares/validation.middleware.js';
 import { GroupRepository } from '../repositories/group.repository.js';
 import { UserRepository } from '../repositories/user.repository.js';
 import { UserService } from '../services/user.service.js';
-import { createUserSchema, updateUserSchema } from '../types/user.type.js';
-import { email } from 'zod';
+import { createUserSchema, updateUserProfileSchema, updateUserSchema, updateUserSettingsSchema } from '../types/user.type.js';
 import EmailService from '../services/email.service.js';
 
 const router = Router();
@@ -24,6 +23,32 @@ router.get(
   authenticate,
   authorize(PermissionConstant.USER_READ.key),
   userController.list
+);
+
+router.put(
+  '/settings',
+  authenticate,
+  validateRequest(updateUserSettingsSchema),
+  userController.updateSettings
+);
+
+router.put(
+  '/profile',
+  authenticate,
+  validateRequest(updateUserProfileSchema),
+  userController.updateProfile
+);
+
+router.get(
+  '/me',
+  authenticate,
+  userController.me
+);
+
+router.delete(
+  '/me',
+  authenticate,
+  userController.deleteMe
 );
 
 router.get(

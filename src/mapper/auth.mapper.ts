@@ -1,4 +1,22 @@
-import { AuthResponseDto } from '../types/auth.type.js';
+import { AuthResponseDto, type UserSettingsDto } from '../types/auth.type.js';
+
+const defaultSettings: UserSettingsDto = {
+  theme: 'dark',
+  language: 'vi'
+};
+
+function normalizeSettings(settings: unknown): UserSettingsDto {
+  if (!settings || typeof settings !== 'object') {
+    return defaultSettings;
+  }
+
+  const value = settings as Partial<UserSettingsDto>;
+
+  return {
+    theme: value.theme === 'light' ? 'light' : 'dark',
+    language: value.language === 'en' ? 'en' : 'vi'
+  };
+}
 
 type AuthUserGroup = {
   group: {
@@ -15,10 +33,13 @@ type AuthUser = {
   id: string;
   fullName: string;
   email: string;
+  phoneNumber: string | null;
+  address: string | null;
   mustChangePassword: boolean;
   userGroups: AuthUserGroup[];
   createdAt: Date;
   updatedAt: Date;
+  settings: unknown;
 };
 
 export class AuthMapper {
@@ -38,12 +59,15 @@ export class AuthMapper {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
+      phoneNumber: user.phoneNumber,
+      address: user.address,
       groups,
       mustChangePassword: user.mustChangePassword,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
       accessToken,
-      permissions
+      permissions,
+      settings: normalizeSettings(user.settings)
     };
   }
 }
