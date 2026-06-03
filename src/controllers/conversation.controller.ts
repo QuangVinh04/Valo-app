@@ -74,6 +74,19 @@ export class ConversationController {
             StatusCodes.OK);
     })
 
+    clearMine = catchAsync(async (
+        req: AuthenticatedRequest,
+        res: Response<ApiResponse<{ deletedCount: number }>>,
+        _next: NextFunction
+    ) => {
+        const deletedCount = await this.conversationService.clearUserConversations(req.user.userId);
+        return sendSuccess(
+            res,
+            { deletedCount },
+            'Chat history cleared successfully',
+            StatusCodes.OK);
+    });
+
     list = catchAsync(async (
     req: AuthenticatedRequest,
     res: Response<ApiResponse<ConversationResponseDto[]>>,

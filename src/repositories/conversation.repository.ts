@@ -70,6 +70,14 @@ export class ConversationRepository {
     return true;
   }
 
+  async deleteManyByUserId(userId: string): Promise<number> {
+    const result = await this.prisma.conversation.deleteMany({
+      where: { userId },
+    });
+
+    return result.count;
+  }
+
   async findMany(input: { userId: string; skip: number; take: number }): Promise<ConversationFull[]> {
     return this.prisma.conversation.findMany({
       where: { userId: input.userId },

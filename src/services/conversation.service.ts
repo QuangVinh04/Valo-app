@@ -66,6 +66,15 @@ export class ConversationService {
         return this.conversationRepo.delete(id);
     }
 
+    async clearUserConversations(userId: string) {
+        const user = await this.userRepo.findById(userId);
+        if (!user) {
+            throw new AppError(ErrorCode.USER_NOT_FOUND);
+        }
+
+        return this.conversationRepo.deleteManyByUserId(userId);
+    }
+
     async getConversations(userId: string, pagination : PaginationOptions){
         const [conversations, total] = await Promise.all([
             this.conversationRepo.findMany({

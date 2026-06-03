@@ -23,6 +23,12 @@ router.get(
   conversationController.list
 );
 
+router.delete(
+  '/',
+  authenticate,
+  conversationController.clearMine
+);
+
 router.get(
   '/:id',
   authenticate,

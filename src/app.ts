@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 
 import env from './config/env.js';
@@ -22,6 +23,7 @@ app.use(
     credentials: true
   })
 );
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
