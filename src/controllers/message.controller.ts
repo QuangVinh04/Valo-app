@@ -5,6 +5,7 @@ import MessageService from '../services/message.service.js';
 import { SendMessageRequestDto } from '../types/message.type.js';
 import env from '../config/env.js';
 import logger from '../utils/logger.util.js';
+import { AiModelKey } from '../constants/ai-model.constant.js';
 
 export class MessageController {
   private readonly messageService: MessageService;
@@ -53,15 +54,28 @@ export class MessageController {
 
       for await (const chunk of this.aiService.stream(
         prepared.context,
-        payload.modelName,
+        payload.modelName as AiModelKey,
         abortController.signal
       )) {
+        // Nếu client đã hủy giữa chừng, dừng vòng lặp ngay
+        if (abortController.signal.aborted) break;
+
+
         fullContent += chunk;
         res.write(`event: token\n`);
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
       }
 
-      if (abortController.signal.aborted) return;
+
+      // Go bo lang nghe su kien de tranh memory leak neu client da huy
+      res.off('close', handleClientClose);
+
+
+      //Nếu client đã hủy thì không làm gì tiếp theo nữa, không lưu DB
+      if (abortController.signal.aborted) {
+        res.end();
+        return;
+      }
 
       const assistantMessage = await this.messageService.saveAssistantMessage(
         prepared.conversationId,
@@ -74,6 +88,8 @@ export class MessageController {
         conversationId: prepared.conversationId,
         assistantMessage,
       })}\n\n`);
+
+    
       res.end();
 
     } catch (error) {

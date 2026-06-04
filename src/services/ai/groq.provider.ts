@@ -3,14 +3,16 @@ import env from '../../config/env.js';
 import { ErrorCode } from '../../constants/error-code.js';
 import AppError from '../../utils/app-error.js';
 import { ChatContextMessage } from '../../utils/chat-text.util.js';
-import { AiProvider, AiStreamOptions } from './ai-provider.js';
+import { AiProvider } from './ai-provider.js';
+import { AiModelKey } from '../../constants/ai-model.constant.js';
 
 export class GroqProvider implements AiProvider {
   readonly name = 'groq';
 
   async *stream(
     context: ChatContextMessage[],
-    options: AiStreamOptions
+    modelName: AiModelKey,
+    signal?: AbortSignal
   ): AsyncGenerator<string> {
     if (!env.GROQ_API_KEY) {
       throw new AppError(
@@ -27,23 +29,23 @@ export class GroqProvider implements AiProvider {
     try {
       const stream = await client.chat.completions.create(
         {
-          model: options.modelName,
+          model: modelName,
           messages: context,
           stream: true,
         },
         {
-          signal: options.signal,
+          signal: signal,
         }
       );
 
       for await (const chunk of stream) {
-        if (options.signal?.aborted) return;
+        if (signal?.aborted) return;
 
         const content = chunk.choices[0]?.delta?.content;
         if (content) yield content;
       }
     } catch (error) {
-      if (options.signal?.aborted) return;
+      if (signal?.aborted) return;
       throw this.toAppError(error);
     }
   }

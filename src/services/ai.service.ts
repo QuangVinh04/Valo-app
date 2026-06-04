@@ -1,14 +1,11 @@
 import env from '../config/env.js';
+import { AI_MODEL_CONFIG, AiModelKey } from '../constants/ai-model.constant.js';
 import { ErrorCode } from '../constants/error-code.js';
 import AppError from '../utils/app-error.js';
 import { ChatContextMessage } from '../utils/chat-text.util.js';
 import { AiProvider } from './ai/ai-provider.js';
 import GroqProvider from './ai/groq.provider.js';
 
-interface ResolvedModel {
-  providerName: string;
-  modelName: string;
-}
 
 export class AiService {
   private readonly providers: Map<string, AiProvider>;
@@ -21,40 +18,31 @@ export class AiService {
 
   async *stream(
     context: ChatContextMessage[],
-    rawModelName: string,
+    modelName: AiModelKey,
     signal?: AbortSignal
   ): AsyncGenerator<string> {
-    const { providerName, modelName } = this.resolveModel(rawModelName);
-    const provider = this.providers.get(providerName);
+
+    const config = AI_MODEL_CONFIG[modelName];
+    const provider = this.providers.get(config.provider);
 
     if (!provider) {
       throw new AppError(
         ErrorCode.BAD_REQUEST,
-        `Unsupported AI provider: ${providerName}`
+        `Unsupported AI provider: ${config.provider}`
       );
     }
 
-    yield* provider.stream(context, {
+    const aiStream = provider.stream(
+      context, 
       modelName,
-      signal,
-    });
-  }
+      signal
+    );
 
-  private resolveModel(rawModelName: string): ResolvedModel {
-    const [providerPrefix, ...modelParts] = rawModelName.split(':');
-
-    if (modelParts.length > 0) {
-      return {
-        providerName: providerPrefix.trim(),
-        modelName: modelParts.join(':').trim(),
-      };
+    for await (const chunk of aiStream) {
+      yield chunk;
     }
-
-    return {
-      providerName: env.AI_PROVIDER,
-      modelName: rawModelName.trim(),
-    };
   }
+
 }
 
 export default AiService;
