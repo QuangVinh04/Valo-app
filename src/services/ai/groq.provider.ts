@@ -4,14 +4,13 @@ import { ErrorCode } from '../../constants/error-code.js';
 import AppError from '../../utils/app-error.js';
 import { ChatContextMessage } from '../../utils/chat-text.util.js';
 import { AiProvider } from './ai-provider.js';
-import { AiModelKey } from '../../constants/ai-model.constant.js';
 
 export class GroqProvider implements AiProvider {
   readonly name = 'groq';
 
   async *stream(
     context: ChatContextMessage[],
-    modelName: AiModelKey,
+    modelName: string,
     signal?: AbortSignal
   ): AsyncGenerator<string> {
     if (!env.GROQ_API_KEY) {

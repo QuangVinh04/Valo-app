@@ -6,7 +6,7 @@ import { AI_MODELS_VALUES, AiModelKey } from '../constants/ai-model.constant.js'
 export const sendMessageSchema = z.object({
   title: z.string().trim().min(2).max(100).optional(),
   content: z.string().trim().min(1, 'Message content is required'),
-  modelName: z.enum(AI_MODELS_VALUES as [string, ...string[]])
+  modelName: z.enum(AI_MODELS_VALUES)
 });
 
 

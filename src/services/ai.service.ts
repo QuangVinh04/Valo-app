@@ -33,8 +33,8 @@ export class AiService {
     }
 
     const aiStream = provider.stream(
-      context, 
-      modelName,
+      context,
+      config.modelName,
       signal
     );
 
@@ -46,4 +46,3 @@ export class AiService {
 }
 
 export default AiService;
-
