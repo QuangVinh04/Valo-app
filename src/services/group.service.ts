@@ -9,6 +9,15 @@ import {
   buildPaginatedResult,
   type PaginationOptions
 } from '../utils/pagination.util.js';
+import { PermissionConstant } from '../constants/permission.constant.js';
+
+const DEFAULT_GROUP_PERMISSION_KEYS = [
+  PermissionConstant.CHAT.key,
+  PermissionConstant.CONV_CREATE.key,
+  PermissionConstant.CONV_READ.key,
+  PermissionConstant.CONV_UPDATE.key,
+  PermissionConstant.CONV_DELETE.key,
+];
 
 export class GroupService {
   private readonly groupRepository: GroupRepository;
@@ -156,7 +165,10 @@ export class GroupService {
   }
 
   private normalizePermissionKeys(permissionKeys?: string[]): string[] {
-    return [...new Set((permissionKeys ?? []).map((permissionKey) => permissionKey.trim()))]
+    return [...new Set([
+      ...DEFAULT_GROUP_PERMISSION_KEYS,
+      ...(permissionKeys ?? []).map((permissionKey) => permissionKey.trim())
+    ])]
       .filter(Boolean);
   }
 
