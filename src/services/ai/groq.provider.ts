@@ -8,6 +8,18 @@ import { AiProvider } from './ai-provider.js';
 export class GroqProvider implements AiProvider {
   readonly name = 'groq';
 
+  private readonly groqClient: Groq;
+
+  constructor(apiKey: string){
+    if(!apiKey) {
+      throw new AppError(ErrorCode.INTERNAL_SERVER_ERROR, 'GROQ_API_KEY is not configured');
+    }
+    this.groqClient = new Groq({
+      apiKey,
+      baseURL: this.normalizeBaseUrl(env.GROQ_BASE_URL),
+    });
+  }
+
   async *stream(
     context: ChatContextMessage[],
     modelName: string,
@@ -20,13 +32,10 @@ export class GroqProvider implements AiProvider {
       );
     }
 
-    const client = new Groq({
-      apiKey: env.GROQ_API_KEY,
-      baseURL: this.normalizeBaseUrl(env.GROQ_BASE_URL),
-    });
+    
 
     try {
-      const stream = await client.chat.completions.create(
+      const stream = await this.groqClient.chat.completions.create(
         {
           model: modelName,
           messages: context,
