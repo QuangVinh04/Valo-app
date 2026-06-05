@@ -43,9 +43,13 @@ export class ConversationService {
      * Lấy chi tiết cuộc hội thoại theo ID; báo lỗi nếu không tồn tại.
      */
     async getConversationById(userId: string, id: string) {
-        const conversation = await this.conversationRepo.getByIdForUser(id, userId);
+        const conversation = await this.conversationRepo.getById(id);
         if (!conversation) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
+        }
+
+        if(conversation.userId !== userId) {
+            throw new AppError(ErrorCode.FORBIDDEN);
         }
 
         return ConversationMapper.toConversationResponseDto(conversation);
@@ -56,9 +60,18 @@ export class ConversationService {
      */
     async updateConversation(userId: string, id: string, updates: UpdateConversationRequestDto) {
 
+        const conversation = await this.conversationRepo.getById(id);
+        if (!conversation) {
+            throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
+        }
+        
+        if(conversation.userId !== userId) {
+            throw new AppError(ErrorCode.FORBIDDEN);
+        }
+
         const updated = await withTransaction(async (tx) => {
             const conversationRepo = new ConversationRepository(tx);
-            const result = await conversationRepo.updateForUser(id, userId, updates);
+            const result = await conversationRepo.update(id, updates);
             if (!result) {
                 throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
             }
@@ -72,8 +85,16 @@ export class ConversationService {
      * Xóa một cuộc hội thoại sau khi kiểm tra nó tồn tại.
      */
     async deleteConversation(userId: string, id: string) {
+        const conversation = await this.conversationRepo.getById(id);
+        if (!conversation) {
+            throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
+        }
         
-        const deleted = await this.conversationRepo.deleteForUser(id, userId);
+        if(conversation.userId !== userId) {
+            throw new AppError(ErrorCode.FORBIDDEN);
+        }
+    
+        const deleted = await this.conversationRepo.delete(id);
         if (!deleted) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }

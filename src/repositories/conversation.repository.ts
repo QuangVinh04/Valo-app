@@ -68,12 +68,6 @@ export class ConversationRepository {
     });
   }
 
-  async getByIdForUser(id: string, userId: string): Promise<ConversationFull | null> {
-    return this.prisma.conversation.findFirst({
-      where: { id, userId },
-      include: conversationInclude
-    });
-  }
 
   async update(id: string, updates: UpdateConversationInput): Promise<ConversationFull | null> {
     return this.prisma.conversation.update({
@@ -83,22 +77,6 @@ export class ConversationRepository {
     });
   }
 
-  async updateForUser(
-    id: string,
-    userId: string,
-    updates: UpdateConversationInput
-  ): Promise<ConversationFull | null> {
-    const result = await this.prisma.conversation.updateMany({
-      where: { id, userId },
-      data: updates
-    });
-
-    if (result.count === 0) {
-      return null;
-    }
-
-    return this.getByIdForUser(id, userId);
-  }
 
   async delete(id: string): Promise<boolean> {
     await this.prisma.conversation.delete({
@@ -107,13 +85,6 @@ export class ConversationRepository {
     return true;
   }
 
-  async deleteForUser(id: string, userId: string): Promise<boolean> {
-    const result = await this.prisma.conversation.deleteMany({
-      where: { id, userId },
-    });
-
-    return result.count > 0;
-  }
 
   async deleteManyByUserId(userId: string): Promise<number> {
     const result = await this.prisma.conversation.deleteMany({
