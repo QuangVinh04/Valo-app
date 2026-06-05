@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient, Prisma, Conversation } from "@prisma/client";
 
 
 
@@ -61,13 +61,18 @@ export class ConversationRepository {
     });
   }
 
-  async getById(id: string): Promise<ConversationFull | null> {
+  async getById(id: string): Promise<Conversation | null> {
+    return this.prisma.conversation.findUnique({
+      where: { id },
+    });
+  }
+
+  async getByIdForUser(id: string): Promise<ConversationFull | null> {
     return this.prisma.conversation.findUnique({
       where: { id },
       include: conversationInclude
     });
   }
-
 
   async update(id: string, updates: UpdateConversationInput): Promise<ConversationFull | null> {
     return this.prisma.conversation.update({

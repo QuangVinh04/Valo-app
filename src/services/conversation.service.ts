@@ -43,7 +43,7 @@ export class ConversationService {
      * Lấy chi tiết cuộc hội thoại theo ID; báo lỗi nếu không tồn tại.
      */
     async getConversationById(userId: string, id: string) {
-        const conversation = await this.conversationRepo.getById(id);
+        const conversation = await this.conversationRepo.getByIdForUser(id);
         if (!conversation) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }
