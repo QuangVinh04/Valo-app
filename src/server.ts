@@ -82,7 +82,7 @@ class Server {
       logger.info('HTTP server closed');
 
       const redisClient = getRedisClient();
-      if (redisClient?.isOpen) {
+      if (redisClient && redisClient.status !== 'end') {
         await redisClient.quit();
         logger.info('Redis disconnected');
       }

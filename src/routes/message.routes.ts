@@ -10,6 +10,7 @@ import { UserRepository } from '../repositories/user.repository.js';
 import AiService from '../services/ai.service.js';
 import MessageService from '../services/message.service.js';
 import { sendMessageSchema } from '../types/message.type.js';
+import { aiChatRateLimit } from '../middlewares/rate-limit.middleware.js';
 
 const router = Router();
 const prismaService = PrismaService.getInstance();
@@ -24,6 +25,7 @@ const messageController = new MessageController(messageService, aiService);
 router.post(
   '/conversations/:id',
   authenticate,
+  aiChatRateLimit,
   authorize(PermissionConstant.CHAT.key),
   validateRequest(sendMessageSchema),
   messageController.sendMessageStream
@@ -32,6 +34,7 @@ router.post(
 router.post(
   '/',
   authenticate,
+  aiChatRateLimit,
   authorize(PermissionConstant.CHAT.key),
   validateRequest(sendMessageSchema),
   messageController.sendMessageStream

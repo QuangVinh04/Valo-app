@@ -43,6 +43,11 @@ export const ErrorCode = {
     message: 'Route not found',
     statusCode: StatusCodes.NOT_FOUND
   },
+  RATE_LIMIT_EXCEEDED: {
+    code: 9007,
+    message: 'Too many requests',
+    statusCode: StatusCodes.TOO_MANY_REQUESTS
+  },
   FORBIDDEN: {
     code: 9006,
     message: 'Forbidden',
