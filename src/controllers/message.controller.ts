@@ -25,7 +25,8 @@ export class MessageController {
     const conversationId = req.params.id?.toString();
     const payload = req.body as SendMessageRequestDto;
     const abortController = new AbortController();
-    let fullContent = '';
+
+    const chunks: string[] = [];  // Lưu trữ các chunk tạm thời để có thể lưu vào DB sau khi stream kết thúc
 
     const handleClientClose = () => {
       abortController.abort();
@@ -60,8 +61,8 @@ export class MessageController {
         // Nếu client đã hủy giữa chừng, dừng vòng lặp ngay
         if (abortController.signal.aborted) break;
 
+        chunks.push(chunk);
 
-        fullContent += chunk;
         res.write(`event: token\n`);
         res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
       }
@@ -76,10 +77,12 @@ export class MessageController {
         res.end();
         return;
       }
+      
+      const finalContent = chunks.join('');
 
       const assistantMessage = await this.messageService.saveAssistantMessage(
         prepared.conversationId,
-        fullContent,
+        finalContent,
         payload.modelName
       );
 
