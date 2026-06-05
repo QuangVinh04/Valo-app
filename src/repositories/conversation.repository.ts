@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma, Conversation } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 
 

@@ -21,41 +21,51 @@ export class ConversationService {
      * Tạo cuộc hội thoại mới cho người dùng sau khi xác nhận userId hợp lệ.
      */
     async createNewConversation(userId: string, payload: CreateConversationRequestDto) {
-        
+
         const user = await this.userRepo.findById(userId);
         if (!user) {
             throw new AppError(ErrorCode.USER_NOT_FOUND);
         }
         const conversation = await withTransaction(async (tx) => {
             const conversationRepo = new ConversationRepository(tx);
-            
+
             return conversationRepo.create({
                 title: payload.title,
                 modelName: payload.modelName,
                 userId: user.id,
             });
         });
-        
+
         return ConversationMapper.toConversationResponseDto(conversation);
     }
 
     /**
      * Lấy chi tiết cuộc hội thoại theo ID; báo lỗi nếu không tồn tại.
      */
-    async getConversationById(id: string) {
+    async getConversationById(userId: string, id: string) {
         const conversation = await this.conversationRepo.getById(id);
         if (!conversation) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }
+
+        if (conversation.userId !== userId) {
+            throw new AppError(ErrorCode.FORBIDDEN);
+        }
+
         return ConversationMapper.toConversationResponseDto(conversation);
     }
 
     /**
      * Cập nhật tiêu đề hoặc model của cuộc hội thoại trong transaction.
      */
-    async updateConversation(id: string, updates: UpdateConversationRequestDto) {
-        
-        const conversation = await withTransaction(async (tx) => {
+    async updateConversation(userId: string, id: string, updates: UpdateConversationRequestDto) {
+
+        // Kiem tra quyen
+        const conversation = await this.conversationRepo.getById(id);
+        if (!conversation) throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
+        if (conversation.userId !== userId) throw new AppError(ErrorCode.FORBIDDEN);
+
+        const updated = await withTransaction(async (tx) => {
             const conversationRepo = new ConversationRepository(tx);
             const result = await conversationRepo.update(id, updates);
             if (!result) {
@@ -63,19 +73,24 @@ export class ConversationService {
             }
             return result;
         });
-        return ConversationMapper.toConversationResponseDto(conversation);
+        return ConversationMapper.toConversationResponseDto(updated);
 
     }
 
     /**
      * Xóa một cuộc hội thoại sau khi kiểm tra nó tồn tại.
      */
-    async deleteConversation(id: string) {
+    async deleteConversation(userId: string, id: string) {
+
         const conversation = await this.conversationRepo.getById(id);
-        if (!conversation) {
+        if (!conversation) throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
+        if (conversation.userId !== userId) throw new AppError(ErrorCode.FORBIDDEN);
+        
+        const deleted = await this.conversationRepo.delete(id);
+        if (!deleted) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }
-        return this.conversationRepo.delete(id);
+        return deleted;
     }
 
     /**
@@ -93,7 +108,7 @@ export class ConversationService {
     /**
      * Lấy danh sách cuộc hội thoại của người dùng theo phân trang.
      */
-    async getConversations(userId: string, pagination : PaginationOptions){
+    async getConversations(userId: string, pagination: PaginationOptions) {
         const [conversations, total] = await Promise.all([
             this.conversationRepo.findMany({
                 userId,

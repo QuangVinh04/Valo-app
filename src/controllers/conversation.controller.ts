@@ -1,4 +1,4 @@
-import { NextFunction, Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import { ConversationService } from '../services/conversation.service.js';
 import catchAsync from '../utils/catch-async.js';
 import { ApiResponse, sendSuccess } from '../utils/api-response.js';
@@ -32,12 +32,12 @@ export class ConversationController {
     });
 
     getById = catchAsync(async (
-        req: Request,
+        req: AuthenticatedRequest,
         res: Response<ApiResponse<ConversationResponseDto>>,
         _next: NextFunction
     ) => {
         const id = req.params.id.toString();
-        const result = await this.conversationService.getConversationById(id);
+        const result = await this.conversationService.getConversationById(req.user.userId, id);
         return sendSuccess(
             res, 
             result, 
@@ -46,13 +46,13 @@ export class ConversationController {
     });
 
     update = catchAsync(async (
-        req: Request,
+        req: AuthenticatedRequest,
         res: Response<ApiResponse<ConversationResponseDto>>,
         _next: NextFunction
     ) => {
         const id = req.params.id.toString();
         const payload = req.body as UpdateConversationRequestDto;
-        const result = await this.conversationService.updateConversation(id, payload);
+        const result = await this.conversationService.updateConversation(req.user.userId, id, payload);
         return sendSuccess(
             res, 
             result, 
@@ -61,12 +61,12 @@ export class ConversationController {
     });
 
     delete = catchAsync(async (
-        req: Request,
+        req: AuthenticatedRequest,
         res: Response<ApiResponse<null>>,
         _next: NextFunction
     ) => {
         const id = req.params.id.toString();
-        await this.conversationService.deleteConversation(id);
+        await this.conversationService.deleteConversation(req.user.userId, id);
         return sendSuccess(
             res, 
             null, 

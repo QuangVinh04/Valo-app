@@ -26,6 +26,7 @@ router.get(
 router.delete(
   '/',
   authenticate,
+  authorize(PermissionConstant.CONV_DELETE.key),
   conversationController.clearMine
 );
 
