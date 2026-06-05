@@ -17,6 +17,9 @@ export class ConversationService {
     }
 
 
+    /**
+     * Tạo cuộc hội thoại mới cho người dùng sau khi xác nhận userId hợp lệ.
+     */
     async createNewConversation(userId: string, payload: CreateConversationRequestDto) {
         
         const user = await this.userRepo.findById(userId);
@@ -36,6 +39,9 @@ export class ConversationService {
         return ConversationMapper.toConversationResponseDto(conversation);
     }
 
+    /**
+     * Lấy chi tiết cuộc hội thoại theo ID; báo lỗi nếu không tồn tại.
+     */
     async getConversationById(id: string) {
         const conversation = await this.conversationRepo.getById(id);
         if (!conversation) {
@@ -44,6 +50,9 @@ export class ConversationService {
         return ConversationMapper.toConversationResponseDto(conversation);
     }
 
+    /**
+     * Cập nhật tiêu đề hoặc model của cuộc hội thoại trong transaction.
+     */
     async updateConversation(id: string, updates: UpdateConversationRequestDto) {
         
         const conversation = await withTransaction(async (tx) => {
@@ -58,6 +67,9 @@ export class ConversationService {
 
     }
 
+    /**
+     * Xóa một cuộc hội thoại sau khi kiểm tra nó tồn tại.
+     */
     async deleteConversation(id: string) {
         const conversation = await this.conversationRepo.getById(id);
         if (!conversation) {
@@ -66,6 +78,9 @@ export class ConversationService {
         return this.conversationRepo.delete(id);
     }
 
+    /**
+     * Xóa toàn bộ cuộc hội thoại của một người dùng hợp lệ.
+     */
     async clearUserConversations(userId: string) {
         const user = await this.userRepo.findById(userId);
         if (!user) {
@@ -75,6 +90,9 @@ export class ConversationService {
         return this.conversationRepo.deleteManyByUserId(userId);
     }
 
+    /**
+     * Lấy danh sách cuộc hội thoại của người dùng theo phân trang.
+     */
     async getConversations(userId: string, pagination : PaginationOptions){
         const [conversations, total] = await Promise.all([
             this.conversationRepo.findMany({

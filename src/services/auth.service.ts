@@ -33,6 +33,9 @@ export class AuthService {
     this.emailService = emailService;
   }
 
+  /**
+   * Gom tất cả quyền từ các nhóm của người dùng để nhúng vào access token.
+   */
   private getPermissionKeys(user: UserFull): string[] {
     return [
       ...new Set(
@@ -43,6 +46,9 @@ export class AuthService {
     ];
   }
 
+  /**
+   * Đăng ký tài khoản mới với nhóm mặc định, mật khẩu tạm thời và email thông báo.
+   */
   async registerUser(payload: RegisterRequestDto): Promise<AuthResponseDto> {
     const email = payload.email.trim().toLowerCase();
     const temporaryPassword = generateTemporaryPassword();
@@ -84,6 +90,9 @@ export class AuthService {
     return AuthMapper.toAuthResponse(result, null);
   }
 
+  /**
+   * Xác thực email/mật khẩu, phát access token và lưu refresh token đã hash.
+   */
   async loginUser(payload: LoginRequestDto): Promise<{
     authResponse: AuthResponseDto;
     refreshToken: string;
@@ -122,6 +131,9 @@ export class AuthService {
     };
   }
 
+  /**
+   * Kiểm tra refresh token, đối chiếu bản đã hash trong DB và phát access token mới.
+   */
   async refreshToken(payload: RefreshTokenRequestDto): Promise<AuthResponseDto> {
     const token = payload.refreshToken;
 
@@ -155,6 +167,9 @@ export class AuthService {
     return AuthMapper.toAuthResponse(user, accessToken);
   }
 
+  /**
+   * Đổi mật khẩu, kiểm tra mật khẩu hiện tại, xác nhận mật khẩu mới và thu hồi refresh token.
+   */
   async changePassword(userId: string, payload: ChangePasswordRequestDto): Promise<void> {
     const user = await this.userRepository.findById(userId);
     if (!user) {
@@ -190,6 +205,9 @@ export class AuthService {
     });
   }
 
+  /**
+   * Đăng xuất bằng cách xác thực refresh token và xóa token đang lưu của người dùng.
+   */
   async logout(refreshToken: string): Promise<void> {
     if (!refreshToken) {
       throw new AppError(ErrorCode.INVALID_TOKEN, 'Refresh token is required');

@@ -11,6 +11,9 @@ type TemporaryPasswordEmailInput = {
 
 export class EmailService {
   
+  /**
+   * Gửi email chứa mật khẩu tạm thời khi tài khoản được tạo hoặc đăng ký.
+   */
   async sendTemporaryPasswordEmail(input: TemporaryPasswordEmailInput): Promise<void> {
 
     await mailTransporter.sendMail({

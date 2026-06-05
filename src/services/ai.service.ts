@@ -1,4 +1,3 @@
-import env from '../config/env.js';
 import { AI_MODEL_CONFIG, AiModelKey } from '../constants/ai-model.constant.js';
 import { ErrorCode } from '../constants/error-code.js';
 import AppError from '../utils/app-error.js';
@@ -16,6 +15,9 @@ export class AiService {
     );
   }
 
+  /**
+   * Stream phản hồi từ provider tương ứng với modelName đã cấu hình.
+   */
   async *stream(
     context: ChatContextMessage[],
     modelName: AiModelKey,

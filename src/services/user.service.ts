@@ -24,6 +24,9 @@ export class UserService {
     this.emailService = emailService;
   }
 
+  /**
+   * Lấy danh sách người dùng theo phân trang và chuyển dữ liệu sang DTO an toàn.
+   */
   async getUsers(pagination: PaginationOptions) {
     const [users, totalItems] = await Promise.all([
       this.userRepo.findMany({
@@ -40,6 +43,9 @@ export class UserService {
     );
   }
 
+  /**
+   * Lấy thông tin một người dùng theo ID; báo lỗi nếu không tìm thấy.
+   */
   async getUserById(id: string) {
     const user = await this.userRepo.findByIdForAuth(id);
 
@@ -50,6 +56,9 @@ export class UserService {
     return UserMapper.toUserResponseDto(user);
   }
 
+  /**
+   * Tạo tài khoản mới, gán nhóm, sinh mật khẩu tạm thời và gửi email cho người dùng.
+   */
   async createUser(payload: CreateUserRequestDto) {
     const email = payload.email.trim().toLowerCase();
 
@@ -83,6 +92,9 @@ export class UserService {
     return UserMapper.toUserResponseDto(user);
   }
 
+  /**
+   * Cập nhật thông tin quản trị của người dùng, bao gồm họ tên và danh sách nhóm.
+   */
   async updateUser(id: string, payload: UpdateUserRequestDto) {
     const user = await this.userRepo.findById(id);
     if (!user) {
@@ -107,6 +119,9 @@ export class UserService {
     return UserMapper.toUserResponseDto(updatedUser);
   }
 
+  /**
+   * Cập nhật thiết lập cá nhân của người dùng hiện tại như giao diện và ngôn ngữ.
+   */
   async updateSettings(userId: string, payload: UserSettingsDto) {
     const user = await this.userRepo.findById(userId);
     if (!user) {
@@ -121,6 +136,9 @@ export class UserService {
     return UserMapper.toUserResponseDto(updatedUser).settings;
   }
 
+  /**
+   * Cập nhật hồ sơ cá nhân, chuyển chuỗi rỗng thành null cho các trường tùy chọn.
+   */
   async updateProfile(userId: string, payload: UserProfileDto) {
     const user = await this.userRepo.findById(userId);
     if (!user) {
@@ -135,6 +153,9 @@ export class UserService {
     return UserMapper.toUserResponseDto(updatedUser);
   }
 
+  /**
+   * Xóa người dùng sau khi xác nhận người dùng tồn tại.
+   */
   async deleteUser(id: string) {
     const user = await this.userRepo.findById(id);
 
@@ -145,6 +166,9 @@ export class UserService {
     await this.userRepo.deleteUser(id);
   }
 
+  /**
+   * Trả về danh sách groupId hợp lệ; nếu không truyền thì dùng nhóm mặc định "user".
+   */
   private async getGroupIds(groupIds?: string[]) {
     if (!groupIds?.length) {
       const defaultGroup = await this.groupRepo.findByName('user');

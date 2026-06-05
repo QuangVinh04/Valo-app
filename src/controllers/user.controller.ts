@@ -35,7 +35,9 @@ export class UserController {
     res: Response<ApiResponse<UserResponseDto>>,
     _next: NextFunction
   ) => {
-    const result = await this.userService.getUserById(this.getIdParam(req));
+
+    const id = this.getIdParam(req);
+    const result = await this.userService.getUserById(id);
     return sendSuccess(res, result, 'User found', StatusCodes.OK);
   });
 
@@ -64,7 +66,8 @@ export class UserController {
     _next: NextFunction
   ) => {
     const payload = req.body as UpdateUserRequestDto;
-    const result = await this.userService.updateUser(this.getIdParam(req), payload);
+    const id = this.getIdParam(req);
+    const result = await this.userService.updateUser(id, payload);
     return sendSuccess(res, result, 'User updated', StatusCodes.OK);
   });
 
@@ -93,7 +96,8 @@ export class UserController {
     res: Response<ApiResponse<null>>,
     _next: NextFunction
   ) => {
-    await this.userService.deleteUser(this.getIdParam(req));
+    const id = this.getIdParam(req);
+    await this.userService.deleteUser(id);
     return sendSuccess(res, null, 'User deleted', StatusCodes.OK);
   });
 

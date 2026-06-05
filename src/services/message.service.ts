@@ -25,6 +25,10 @@ export class MessageService {
     this.messageRepo = messageRepo;
   }
 
+  /**
+   * Chuẩn bị dữ liệu cho luồng chat: kiểm tra quyền sở hữu conversation, tạo conversation nếu cần,
+   * lưu tin nhắn người dùng và xây dựng context gần nhất cho AI.
+   */
   async prepareMessageStream(
     userId: string,
     payload: SendMessageRequestDto,
@@ -76,6 +80,9 @@ export class MessageService {
   }
 
 
+  /**
+   * Lưu câu trả lời hoàn chỉnh của assistant sau khi quá trình stream kết thúc.
+   */
   async saveAssistantMessage(
     conversationId: string,
     content: string,

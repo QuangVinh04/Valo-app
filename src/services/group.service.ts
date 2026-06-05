@@ -28,6 +28,9 @@ export class GroupService {
     this.userRepository = userRepository;
   }
 
+  /**
+   * Lấy danh sách nhóm theo phân trang và chuyển sang DTO trả về cho client.
+   */
   async getGroups(pagination: PaginationOptions) {
     const [groups, totalItems] = await Promise.all([
       this.groupRepository.findMany({
@@ -44,6 +47,9 @@ export class GroupService {
     );
   }
 
+  /**
+   * Lấy chi tiết một nhóm kèm quyền; báo lỗi nếu nhóm không tồn tại.
+   */
   async getGroupById(id: string) {
     const group = await this.groupRepository.findByIdWithPermissions(id);
     if (!group) {
@@ -53,6 +59,9 @@ export class GroupService {
     return GroupMapper.toGroupResponseDto(group);
   }
 
+  /**
+   * Tạo nhóm mới sau khi chuẩn hóa tên, kiểm tra trùng tên và gán quyền mặc định.
+   */
   async createGroup(payload: GroupRequestDto) {
     const name = payload.name.trim();
     const existingGroup = await this.groupRepository.findByName(name);
@@ -73,6 +82,9 @@ export class GroupService {
     return GroupMapper.toGroupResponseDto(result);
   }
 
+  /**
+   * Cập nhật thông tin nhóm và thay thế danh sách quyền nếu payload có truyền permissions.
+   */
   async updateGroup(id: string, payload: UpdateGroupRequestDto) {
     const result = await withTransaction(async (tx) => {
       const groupRepo = new GroupRepository(tx);
@@ -104,6 +116,9 @@ export class GroupService {
   }
 
 
+  /**
+   * Xóa nhóm sau khi xác nhận nhóm tồn tại.
+   */
   async deleteGroup(id: string): Promise<void> {
     const group = await this.groupRepository.findById(id);
     if (!group) {
@@ -114,6 +129,9 @@ export class GroupService {
   }
 
 
+  /**
+   * Thêm người dùng vào nhóm trong một transaction và trả về nhóm đã cập nhật.
+   */
   async addMembers(groupId: string, userIds: string[]) {
     const group = await withTransaction(async (tx) => {
       const groupRepo = new GroupRepository(tx);
@@ -139,6 +157,9 @@ export class GroupService {
     return GroupMapper.toGroupResponseDto(group);
   }
 
+  /**
+   * Gỡ người dùng khỏi nhóm trong một transaction và trả về nhóm đã cập nhật.
+   */
   async removeMembers(groupId: string, userIds: string[]) {
     const group = await withTransaction(async (tx) => {
       const groupRepo = new GroupRepository(tx);
@@ -164,6 +185,9 @@ export class GroupService {
     return GroupMapper.toGroupResponseDto(group);
   }
 
+  /**
+   * Chuẩn hóa danh sách quyền, tự động thêm các quyền cơ bản cho nhóm mới hoặc nhóm cập nhật.
+   */
   private normalizePermissionKeys(permissionKeys?: string[]): string[] {
     return [...new Set([
       ...DEFAULT_GROUP_PERMISSION_KEYS,
@@ -172,10 +196,16 @@ export class GroupService {
       .filter(Boolean);
   }
 
+  /**
+   * Loại bỏ khoảng trắng, giá trị rỗng và ID bị trùng trong danh sách đầu vào.
+   */
   private normalizeIds(ids: string[]): string[] {
     return [...new Set(ids.map((id) => id.trim()))].filter(Boolean);
   }
 
+  /**
+   * Đảm bảo toàn bộ userId đều tồn tại trước khi thay đổi thành viên nhóm.
+   */
   private async ensureUsersExist(userRepo: UserRepository, userIds: readonly string[]): Promise<void> {
     const existingUserIds = await userRepo.findExistingIdsByIds(userIds);
     const existingUserIdSet = new Set(existingUserIds);
