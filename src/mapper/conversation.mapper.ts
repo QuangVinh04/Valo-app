@@ -1,5 +1,5 @@
-import { ConversationFull } from "../repositories/conversation.repository.js";
-import { ConversationResponseDto } from "../types/conversation.type.js";
+import { ConversationFull, ConversationListItem } from "../repositories/conversation.repository.js";
+import { ConversationListItemDto, ConversationResponseDto } from "../types/conversation.type.js";
 
 
 export class ConversationMapper {
@@ -16,6 +16,17 @@ export class ConversationMapper {
         modelName: message.modelName,
         createdAt: message.createdAt
       })),
+      createdAt: conversation.createdAt,
+      updatedAt: conversation.updatedAt
+    };
+  }
+
+  static toConversationListItemDto(conversation: ConversationListItem): ConversationListItemDto {
+    return {
+      id: conversation.id,
+      title: conversation.title,
+      modelName: conversation.modelName,
+      userId: conversation.userId,
       createdAt: conversation.createdAt,
       updatedAt: conversation.updatedAt
     };

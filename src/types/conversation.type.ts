@@ -31,4 +31,13 @@ export interface ConversationResponseDto {
     createdAt: Date;
   }>;
 }
+
+export interface ConversationListItemDto {
+  id: string;
+  title: string;
+  modelName: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
    

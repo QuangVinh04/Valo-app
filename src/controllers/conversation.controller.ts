@@ -2,10 +2,10 @@ import { NextFunction, Response } from 'express';
 import { ConversationService } from '../services/conversation.service.js';
 import catchAsync from '../utils/catch-async.js';
 import { ApiResponse, sendSuccess } from '../utils/api-response.js';
-import { ConversationResponseDto, CreateConversationRequestDto, UpdateConversationRequestDto } from '../types/conversation.type.js';
+import { ConversationListItemDto, ConversationResponseDto, CreateConversationRequestDto, UpdateConversationRequestDto } from '../types/conversation.type.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { StatusCodes } from 'http-status-codes';
-import { getPaginationOptions } from '../utils/pagination.util.js';
+import { getCursorPaginationOptions } from '../utils/pagination.util.js';
 
 export class ConversationController {
     private conversationService: ConversationService;
@@ -89,11 +89,11 @@ export class ConversationController {
 
     list = catchAsync(async (
     req: AuthenticatedRequest,
-    res: Response<ApiResponse<ConversationResponseDto[]>>,
+    res: Response<ApiResponse<ConversationListItemDto[]>>,
     _next: NextFunction
   ) => {
     const userId = req.user.userId;
-    const pagination = getPaginationOptions(req.query);
+    const pagination = getCursorPaginationOptions(req.query);
     const result = await this.conversationService.getConversations(userId, pagination);
     return sendSuccess(
         res, 

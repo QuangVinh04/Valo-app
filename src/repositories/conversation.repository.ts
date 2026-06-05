@@ -12,8 +12,21 @@ const conversationInclude = {
   },
 } satisfies Prisma.ConversationInclude;
 
+const conversationListSelect = {
+  id: true,
+  title: true,
+  modelName: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.ConversationSelect;
+
 export type ConversationFull = Prisma.ConversationGetPayload<{
   include: typeof conversationInclude;
+}>;
+
+export type ConversationListItem = Prisma.ConversationGetPayload<{
+  select: typeof conversationListSelect;
 }>;
 
 export interface CreateConversationInput {
@@ -55,6 +68,13 @@ export class ConversationRepository {
     });
   }
 
+  async getByIdForUser(id: string, userId: string): Promise<ConversationFull | null> {
+    return this.prisma.conversation.findFirst({
+      where: { id, userId },
+      include: conversationInclude
+    });
+  }
+
   async update(id: string, updates: UpdateConversationInput): Promise<ConversationFull | null> {
     return this.prisma.conversation.update({
       where: { id },
@@ -63,11 +83,36 @@ export class ConversationRepository {
     });
   }
 
+  async updateForUser(
+    id: string,
+    userId: string,
+    updates: UpdateConversationInput
+  ): Promise<ConversationFull | null> {
+    const result = await this.prisma.conversation.updateMany({
+      where: { id, userId },
+      data: updates
+    });
+
+    if (result.count === 0) {
+      return null;
+    }
+
+    return this.getByIdForUser(id, userId);
+  }
+
   async delete(id: string): Promise<boolean> {
     await this.prisma.conversation.delete({
       where: { id },
     });
     return true;
+  }
+
+  async deleteForUser(id: string, userId: string): Promise<boolean> {
+    const result = await this.prisma.conversation.deleteMany({
+      where: { id, userId },
+    });
+
+    return result.count > 0;
   }
 
   async deleteManyByUserId(userId: string): Promise<number> {
@@ -78,13 +123,59 @@ export class ConversationRepository {
     return result.count;
   }
 
-  async findMany(input: { userId: string; skip: number; take: number }): Promise<ConversationFull[]> {
+  async findMany(input: { userId: string; skip: number; take: number }): Promise<ConversationListItem[]> {
     return this.prisma.conversation.findMany({
       where: { userId: input.userId },
       skip: input.skip,
       take: input.take,
-      include: conversationInclude,
-      orderBy: { createdAt: 'desc' },
+      select: conversationListSelect,
+      orderBy: [
+        { updatedAt: 'desc' },
+        { id: 'desc' }
+      ],
+    });
+  }
+
+  async findManyCursor(input: {
+    userId: string;
+    cursor?: string;
+    take: number;
+  }): Promise<ConversationListItem[]> {
+    const cursor = input.cursor
+      ? await this.prisma.conversation.findFirst({
+        where: { id: input.cursor, userId: input.userId },
+        select: {
+          id: true,
+          updatedAt: true
+        }
+      })
+      : null;
+
+    if (input.cursor && !cursor) {
+      return [];
+    }
+
+    return this.prisma.conversation.findMany({
+      where: {
+        userId: input.userId,
+        ...(cursor
+          ? {
+            OR: [
+              { updatedAt: { lt: cursor.updatedAt } },
+              {
+                updatedAt: cursor.updatedAt,
+                id: { lt: cursor.id }
+              }
+            ]
+          }
+          : {})
+      },
+      take: input.take,
+      select: conversationListSelect,
+      orderBy: [
+        { updatedAt: 'desc' },
+        { id: 'desc' }
+      ],
     });
   }
 

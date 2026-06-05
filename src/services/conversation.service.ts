@@ -5,7 +5,7 @@ import { ConversationMapper } from '../mapper/conversation.mapper.js';
 import AppError from '../utils/app-error.js';
 import { ErrorCode } from '../constants/error-code.js';
 import { withTransaction } from '../database/transaction.js';
-import { buildPaginatedResult, PaginationOptions } from '../utils/pagination.util.js';
+import { buildCursorPaginatedResult, CursorPaginationOptions } from '../utils/pagination.util.js';
 
 export class ConversationService {
     private conversationRepo: ConversationRepository;
@@ -43,13 +43,9 @@ export class ConversationService {
      * Lấy chi tiết cuộc hội thoại theo ID; báo lỗi nếu không tồn tại.
      */
     async getConversationById(userId: string, id: string) {
-        const conversation = await this.conversationRepo.getById(id);
+        const conversation = await this.conversationRepo.getByIdForUser(id, userId);
         if (!conversation) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
-        }
-
-        if (conversation.userId !== userId) {
-            throw new AppError(ErrorCode.FORBIDDEN);
         }
 
         return ConversationMapper.toConversationResponseDto(conversation);
@@ -60,14 +56,9 @@ export class ConversationService {
      */
     async updateConversation(userId: string, id: string, updates: UpdateConversationRequestDto) {
 
-        // Kiem tra quyen
-        const conversation = await this.conversationRepo.getById(id);
-        if (!conversation) throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
-        if (conversation.userId !== userId) throw new AppError(ErrorCode.FORBIDDEN);
-
         const updated = await withTransaction(async (tx) => {
             const conversationRepo = new ConversationRepository(tx);
-            const result = await conversationRepo.update(id, updates);
+            const result = await conversationRepo.updateForUser(id, userId, updates);
             if (!result) {
                 throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
             }
@@ -81,12 +72,8 @@ export class ConversationService {
      * Xóa một cuộc hội thoại sau khi kiểm tra nó tồn tại.
      */
     async deleteConversation(userId: string, id: string) {
-
-        const conversation = await this.conversationRepo.getById(id);
-        if (!conversation) throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
-        if (conversation.userId !== userId) throw new AppError(ErrorCode.FORBIDDEN);
         
-        const deleted = await this.conversationRepo.delete(id);
+        const deleted = await this.conversationRepo.deleteForUser(id, userId);
         if (!deleted) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }
@@ -106,21 +93,18 @@ export class ConversationService {
     }
 
     /**
-     * Lấy danh sách cuộc hội thoại của người dùng theo phân trang.
+     * Lấy danh sách cuộc hội thoại của người dùng theo cursor pagination.
      */
-    async getConversations(userId: string, pagination: PaginationOptions) {
-        const [conversations, total] = await Promise.all([
-            this.conversationRepo.findMany({
-                userId,
-                skip: pagination.skip,
-                take: pagination.limit,
-            }),
-            this.conversationRepo.count(userId),
-        ]);
-        return buildPaginatedResult(
-            conversations.map(ConversationMapper.toConversationResponseDto),
-            total,
-            pagination
+    async getConversations(userId: string, pagination: CursorPaginationOptions) {
+        const conversations = await this.conversationRepo.findManyCursor({
+            userId,
+            cursor: pagination.cursor,
+            take: pagination.limit + 1,
+        });
+
+        return buildCursorPaginatedResult(
+            conversations.map(ConversationMapper.toConversationListItemDto),
+            pagination.limit
         );
     }
 }

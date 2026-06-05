@@ -14,6 +14,20 @@ export interface PaginatedResult<T> {
   };
 }
 
+export interface CursorPaginationOptions {
+  limit: number;
+  cursor?: string;
+}
+
+export interface CursorPaginatedResult<T> {
+  data: T[];
+  meta: {
+    limit: number;
+    nextCursor: string | null;
+    hasNextPage: boolean;
+  };
+}
+
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
 const MAX_LIMIT = 100;
@@ -44,6 +58,24 @@ export function buildPaginatedResult<T>(
       limit: options.limit,
       totalItems,
       totalPages: Math.ceil(totalItems / options.limit)
+    }
+  };
+}
+
+export function buildCursorPaginatedResult<T extends { id: string }>(
+  data: T[],
+  limit: number
+): CursorPaginatedResult<T> {
+  const hasNextPage = data.length > limit;
+  const pageItems = hasNextPage ? data.slice(0, limit) : data;
+  const lastItem = pageItems.at(-1);
+
+  return {
+    data: pageItems,
+    meta: {
+      limit,
+      nextCursor: hasNextPage && lastItem ? lastItem.id : null,
+      hasNextPage
     }
   };
 }

@@ -6,6 +6,8 @@ export interface ResponseMeta {
   limit?: number;
   totalItems?: number;
   totalPages?: number;
+  nextCursor?: string | null;
+  hasNextPage?: boolean;
 }
 
 export interface ResponseErrorDetail {
