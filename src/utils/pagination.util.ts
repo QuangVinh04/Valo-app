@@ -46,6 +46,21 @@ export function getPaginationOptions(query: {
   };
 }
 
+export function getCursorPaginationOptions(query: {
+  limit?: unknown;
+  cursor?: unknown;
+}): CursorPaginationOptions {
+  const limit = Math.min(Math.max(Number(query.limit) || DEFAULT_LIMIT, 1), MAX_LIMIT);
+  const cursor = typeof query.cursor === 'string' && query.cursor.trim()
+    ? query.cursor.trim()
+    : undefined;
+
+  return {
+    limit,
+    cursor
+  };
+}
+
 export function buildPaginatedResult<T>(
   data: T[],
   totalItems: number,
