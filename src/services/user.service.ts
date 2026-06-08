@@ -76,6 +76,8 @@ export class UserService {
       const result = await userRepo.createUser({
         fullName: payload.fullName.trim(),
         email,
+        phoneNumber: payload.phoneNumber?.trim() || null,
+        address: payload.address?.trim() || null,
         password: await hashString(temporaryPassword),
         mustChangePassword: true,
         groupIds,
@@ -110,6 +112,8 @@ export class UserService {
 
       const result = await userRepo.updateUser(id, {
         fullName: payload.fullName?.trim(),
+        ...(payload.phoneNumber !== undefined ? { phoneNumber: payload.phoneNumber.trim() || null } : {}),
+        ...(payload.address !== undefined ? { address: payload.address.trim() || null } : {}),
         groupIds
       });
 

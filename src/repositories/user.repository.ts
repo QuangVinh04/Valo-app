@@ -21,6 +21,8 @@ export type UserFull = Prisma.UserGetPayload<{
 export interface CreateUserInput {
   fullName: string;
   email: string;
+  phoneNumber?: string | null;
+  address?: string | null;
   password: string;
   mustChangePassword?: boolean;
   groupIds: readonly string[];
@@ -28,6 +30,8 @@ export interface CreateUserInput {
 
 export interface UpdateUserInput {
   fullName?: string;
+  phoneNumber?: string | null;
+  address?: string | null;
   groupIds?: readonly string[];
 }
 
@@ -108,6 +112,8 @@ export class UserRepository {
       data: {
         fullName: input.fullName,
         email: input.email,
+        phoneNumber: input.phoneNumber,
+        address: input.address,
         password: input.password,
         mustChangePassword: input.mustChangePassword ?? true,
         userGroups: {

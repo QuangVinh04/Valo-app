@@ -173,6 +173,8 @@ export const swaggerDocument = {
         properties: {
           fullName: { type: 'string', example: 'Nguyen Van B' },
           email: { type: 'string', format: 'email', example: 'b@example.com' },
+          phoneNumber: { type: 'string', nullable: true, example: '+84901234567' },
+          address: { type: 'string', nullable: true, example: 'Ho Chi Minh City' },
           groupIds: {
             type: 'array',
             items: { type: 'string', format: 'uuid' },
@@ -183,6 +185,8 @@ export const swaggerDocument = {
         type: 'object',
         properties: {
           fullName: { type: 'string', example: 'Nguyen Van B Updated' },
+          phoneNumber: { type: 'string', nullable: true, example: '+84901234567' },
+          address: { type: 'string', nullable: true, example: 'Ho Chi Minh City' },
           groupIds: {
             type: 'array',
             items: { type: 'string', format: 'uuid' },
@@ -195,6 +199,8 @@ export const swaggerDocument = {
           id: { type: 'string', format: 'uuid' },
           fullName: { type: 'string', example: 'Nguyen Van B' },
           email: { type: 'string', format: 'email', example: 'b@example.com' },
+          phoneNumber: { type: 'string', nullable: true, example: '+84901234567' },
+          address: { type: 'string', nullable: true, example: 'Ho Chi Minh City' },
           groups: {
             type: 'array',
             items: { $ref: '#/components/schemas/UserGroupLite' },

@@ -3,11 +3,15 @@ import { z } from 'zod';
 export const createUserSchema = z.object({
   fullName: z.string().trim().min(1, 'fullName is required'),
   email: z.email('Invalid email').transform((value) => value.trim().toLowerCase()),
+  phoneNumber: z.string().trim().max(32, 'phoneNumber is too long').optional(),
+  address: z.string().trim().max(255, 'address is too long').optional(),
   groupIds: z.array(z.uuid()).min(1, 'At least one group is required').optional()
 });
 
 export const updateUserSchema = z.object({
   fullName: z.string().trim().min(1, 'fullName is required').optional(),
+  phoneNumber: z.string().trim().max(32, 'phoneNumber is too long').optional(),
+  address: z.string().trim().max(255, 'address is too long').optional(),
   groupIds: z.array(z.uuid()).min(1, 'At least one group is required').optional()
 }).refine(
   (value) => Object.keys(value).length > 0,

@@ -10,7 +10,7 @@ export class GroqProvider implements AiProvider {
 
   private readonly groqClient: Groq;
 
-  constructor(apiKey: string){
+  constructor(apiKey = env.GROQ_API_KEY){
     if(!apiKey) {
       throw new AppError(ErrorCode.INTERNAL_SERVER_ERROR, 'GROQ_API_KEY is not configured');
     }
