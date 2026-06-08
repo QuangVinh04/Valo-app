@@ -19,6 +19,22 @@ export class UserController {
     return Array.isArray(id) ? id[0] : id;
   }
 
+  private getListFilters(req: Request) {
+    const search = typeof req.query.search === 'string' ? req.query.search : undefined;
+    const groupId = typeof req.query.groupId === 'string' ? req.query.groupId : undefined;
+    const mustChangePassword = req.query.mustChangePassword === 'true'
+      ? true
+      : req.query.mustChangePassword === 'false'
+        ? false
+        : undefined;
+
+    return {
+      search,
+      groupId,
+      mustChangePassword,
+    };
+  }
+
   list = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<UserResponseDto[]>>,
@@ -26,7 +42,7 @@ export class UserController {
   ) => {
 
     const pagination = getPaginationOptions(req.query);
-    const result = await this.userService.getUsers(pagination);
+    const result = await this.userService.getUsers(pagination, this.getListFilters(req));
     return sendSuccess(res, result.data, 'Users found', StatusCodes.OK, result.meta);
   });
 

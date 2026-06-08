@@ -45,6 +45,13 @@ export interface UserProfileInput {
   address?: string | null;
 }
 
+export interface UserFindManyInput {
+  skip: number;
+  take: number;
+  search?: string;
+  groupId?: string;
+  mustChangePassword?: boolean;
+}
 
 export class UserRepository {
   private readonly prisma: DbClient;
@@ -76,18 +83,43 @@ export class UserRepository {
   }
 
 
-  async findMany(input: { skip: number; take: number }): Promise<UserFull[]> {
+  private buildUserWhere(input: Pick<UserFindManyInput, 'search' | 'groupId' | 'mustChangePassword'>): Prisma.UserWhereInput {
+    return {
+      ...(input.search ? {
+        OR: [
+          { fullName: { contains: input.search, mode: 'insensitive' } },
+          { email: { contains: input.search, mode: 'insensitive' } },
+        ],
+      } : {}),
+      ...(input.groupId ? {
+        userGroups: {
+          some: {
+            groupId: input.groupId,
+          },
+        },
+      } : {}),
+      ...(input.mustChangePassword !== undefined ? {
+        mustChangePassword: input.mustChangePassword,
+      } : {}),
+    };
+  }
+
+
+  async findMany(input: UserFindManyInput): Promise<UserFull[]> {
     return this.prisma.user.findMany({
       skip: input.skip,
       take: input.take,
+      where: this.buildUserWhere(input),
       include: userInclude,
       orderBy: { createdAt: 'desc' },
     });
   }
 
 
-  async count(): Promise<number> {
-    return this.prisma.user.count();
+  async count(input: Pick<UserFindManyInput, 'search' | 'groupId' | 'mustChangePassword'> = {}): Promise<number> {
+    return this.prisma.user.count({
+      where: this.buildUserWhere(input),
+    });
   }
 
 

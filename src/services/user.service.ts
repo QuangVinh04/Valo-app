@@ -13,6 +13,12 @@ import {
   type PaginationOptions
 } from '../utils/pagination.util.js';
 
+export interface UserListFilters {
+  search?: string;
+  groupId?: string;
+  mustChangePassword?: boolean;
+}
+
 export class UserService {
   private readonly userRepo: UserRepository;
   private readonly groupRepo: GroupRepository;
@@ -27,13 +33,20 @@ export class UserService {
   /**
    * Lấy danh sách người dùng theo phân trang và chuyển dữ liệu sang DTO an toàn.
    */
-  async getUsers(pagination: PaginationOptions) {
+  async getUsers(pagination: PaginationOptions, filters: UserListFilters = {}) {
+    const normalizedFilters = {
+      search: filters.search?.trim() || undefined,
+      groupId: filters.groupId?.trim() || undefined,
+      mustChangePassword: filters.mustChangePassword,
+    };
+
     const [users, totalItems] = await Promise.all([
       this.userRepo.findMany({
         skip: pagination.skip,
         take: pagination.limit,
+        ...normalizedFilters,
       }),
-      this.userRepo.count(),
+      this.userRepo.count(normalizedFilters),
     ]);
 
     return buildPaginatedResult(
