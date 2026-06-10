@@ -1,4 +1,4 @@
-import type { Group, Prisma, PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 

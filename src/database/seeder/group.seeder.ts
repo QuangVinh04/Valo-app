@@ -5,7 +5,7 @@ import { GroupRepository } from '../../repositories/group.repository.js';
 export async function seedGroups(prisma: PrismaClient): Promise<void> {
     const groupRepository = new GroupRepository(prisma);
 
-    let adminGroup = await groupRepository.findByName('admin');
+    const adminGroup = await groupRepository.findByName('admin');
     if (!adminGroup) {
 
         const adminPermissionKeys = PermissionConstant.ALL.map((item) => item.key);
@@ -16,7 +16,7 @@ export async function seedGroups(prisma: PrismaClient): Promise<void> {
         });
     }
 
-    let userGroup = await groupRepository.findByName('user');
+    const userGroup = await groupRepository.findByName('user');
     if (!userGroup) {
 
         const userPermissionKeys = [

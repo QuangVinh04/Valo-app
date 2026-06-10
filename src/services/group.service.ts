@@ -88,9 +88,22 @@ export class GroupService {
   async updateGroup(id: string, payload: UpdateGroupRequestDto) {
     const result = await withTransaction(async (tx) => {
       const groupRepo = new GroupRepository(tx);
+      const group = await groupRepo.findById(id);
+
+      if (!group) {
+        throw new AppError(ErrorCode.GROUP_NOT_FOUND);
+      }
+
+      const name = payload.name?.trim();
+      if (name) {
+        const existingGroup = await groupRepo.findByNameExceptId(name, id);
+        if (existingGroup) {
+          throw new AppError(ErrorCode.GROUP_NAME_ALREADY_IN_USE);
+        }
+      }
 
       await groupRepo.updateGroup(id, {
-        name: payload.name?.trim(),
+        name,
         description: payload.description?.trim(),
       });
 
@@ -104,13 +117,13 @@ export class GroupService {
         }
       }
 
-      const group = await groupRepo.findByIdWithPermissions(id);
+      const updatedGroup = await groupRepo.findByIdWithPermissions(id);
 
-      if (!group) {
+      if (!updatedGroup) {
         throw new AppError(ErrorCode.GROUP_NOT_FOUND);
       }
 
-      return group;
+      return updatedGroup;
     });
     return GroupMapper.toGroupResponseDto(result);
   }
