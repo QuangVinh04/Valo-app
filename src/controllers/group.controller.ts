@@ -19,7 +19,7 @@ export class GroupController {
   }
 
 
-  list = catchAsync(async (
+  getGroups = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<GroupResponseDto[]>>,
     _next: NextFunction
@@ -28,7 +28,7 @@ export class GroupController {
     return sendSuccess(res, result.data, 'Groups found', StatusCodes.OK, result.meta);
   });
 
-  getById = catchAsync(async (
+  getGroupById = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<GroupResponseDto>>,
     _next: NextFunction
@@ -38,7 +38,7 @@ export class GroupController {
     return sendSuccess(res, result, 'Group found', StatusCodes.OK);
   });
 
-  create = catchAsync(async (
+  createGroup = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<GroupResponseDto>>,
     _next: NextFunction
@@ -48,7 +48,7 @@ export class GroupController {
     return sendSuccess(res, result, 'Group created', StatusCodes.CREATED);
   });
 
-  update = catchAsync(async (
+  updateGroup = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<GroupResponseDto>>,
     _next: NextFunction
@@ -59,7 +59,7 @@ export class GroupController {
     return sendSuccess(res, result, 'Group updated', StatusCodes.OK);
   });
 
-  delete = catchAsync(async (
+  deleteGroup = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<null>>,
     _next: NextFunction
@@ -70,7 +70,7 @@ export class GroupController {
   });
 
 
-  addMembers = catchAsync(async (
+  addGroupMembers = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<GroupResponseDto>>,
     _next: NextFunction
@@ -83,7 +83,7 @@ export class GroupController {
 
 
 
-  removeMembers = catchAsync(async (
+  removeGroupMembers = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<GroupResponseDto>>,
     _next: NextFunction

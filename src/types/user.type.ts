@@ -21,22 +21,15 @@ export const updateUserSchema = z.object({
 export type CreateUserRequestDto = z.infer<typeof createUserSchema>;
 export type UpdateUserRequestDto = z.infer<typeof updateUserSchema>;
 
-export const updateUserSettingsSchema = z.object({
+export const UserSettingsSchema = z.object({
   theme: z.enum(['dark', 'light']),
   language: z.enum(['vi', 'en'])
 });
 
-export type UserSettingsDto = z.infer<typeof updateUserSettingsSchema>;
+export type UserSettingsDto = z.infer<typeof UserSettingsSchema>;
 
-export const updateUserProfileSchema = z.object({
-  phoneNumber: z.string().trim().max(32, 'phoneNumber is too long').optional(),
-  address: z.string().trim().max(255, 'address is too long').optional()
-}).refine(
-  (value) => Object.keys(value).length > 0,
-  'At least one field is required'
-);
 
-export type UserProfileDto = z.infer<typeof updateUserProfileSchema>;
+
 
 export interface UserResponseDto {
   id: string;
@@ -52,5 +45,4 @@ export interface UserResponseDto {
   mustChangePassword: boolean;
   createdAt: Date;
   updatedAt: Date;
-  settings: UserSettingsDto;
 }

@@ -150,7 +150,7 @@ export class UserService {
       language: payload.language
     });
 
-    return UserMapper.toUserResponseDto(updatedUser).settings;
+    return UserMapper.toUserResponseDto(updatedUser);
   }
 
   /**

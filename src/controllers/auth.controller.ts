@@ -4,7 +4,6 @@ import type {
   ChangePasswordRequestDto,
   LoginRequestDto,
   RegisterRequestDto,
-  RegisterResponseDto
 } from '../types/auth.type.js';
 import { AuthService } from '../services/auth.service.js';
 import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
@@ -19,9 +18,9 @@ export class AuthController {
     this.authService = service;
   }
 
-  register = catchAsync(async (
+  registerUser = catchAsync(async (
     req: Request,
-    res: Response<ApiResponse<RegisterResponseDto>>,
+    res: Response<ApiResponse<boolean>>,
     _next: NextFunction
   ) => {
     const payload = req.body as RegisterRequestDto;
@@ -34,7 +33,7 @@ export class AuthController {
     );
   });
 
-  login = catchAsync(async (
+  loginUser = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<AuthResponseDto>>,
     _next: NextFunction
@@ -56,7 +55,7 @@ export class AuthController {
       StatusCodes.OK);
   });
 
-  logout = catchAsync(async (
+  logoutUser = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<void>>,
     _next: NextFunction
@@ -79,7 +78,7 @@ export class AuthController {
     );
   });
 
-  refreshToken = catchAsync(async (
+  refreshAccessToken = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<AuthResponseDto>>,
     _next: NextFunction

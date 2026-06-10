@@ -14,10 +14,6 @@ export class UserController {
     this.userService = userService;
   }
 
-  private getIdParam(req: Request): string {
-    const id = req.params.id;
-    return Array.isArray(id) ? id[0] : id;
-  }
 
   private getListFilters(req: Request) {
     const search = typeof req.query.search === 'string' ? req.query.search : undefined;
@@ -35,7 +31,7 @@ export class UserController {
     };
   }
 
-  list = catchAsync(async (
+  getUsers = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<UserResponseDto[]>>,
     _next: NextFunction
@@ -46,18 +42,18 @@ export class UserController {
     return sendSuccess(res, result.data, 'Users found', StatusCodes.OK, result.meta);
   });
 
-  getById = catchAsync(async (
+  getUserById = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<UserResponseDto>>,
     _next: NextFunction
   ) => {
 
-    const id = this.getIdParam(req);
+    const id = req.params.id.toString();
     const result = await this.userService.getUserById(id);
     return sendSuccess(res, result, 'User found', StatusCodes.OK);
   });
 
-  me = catchAsync(async (
+  getCurrentUser = catchAsync(async (
     req: AuthenticatedRequest,
     res: Response<ApiResponse<UserResponseDto>>,
     _next: NextFunction
@@ -66,7 +62,7 @@ export class UserController {
     return sendSuccess(res, result, 'Current user found', StatusCodes.OK);
   });
 
-  create = catchAsync(async (
+  createUser = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<UserResponseDto>>,
     _next: NextFunction
@@ -76,20 +72,20 @@ export class UserController {
     return sendSuccess(res, result, 'User created', StatusCodes.CREATED);
   });
 
-  update = catchAsync(async (
+  updateUser = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<UserResponseDto>>,
     _next: NextFunction
   ) => {
     const payload = req.body as UpdateUserRequestDto;
-    const id = this.getIdParam(req);
+    const id = req.params.id.toString();
     const result = await this.userService.updateUser(id, payload);
     return sendSuccess(res, result, 'User updated', StatusCodes.OK);
   });
 
-  updateSettings = catchAsync(async (
+  updateUserSettings = catchAsync(async (
     req: AuthenticatedRequest,
-    res: Response<ApiResponse<UserSettingsDto>>,
+    res: Response<ApiResponse<UserResponseDto>>,
     _next: NextFunction
   ) => {
     const payload = req.body as UserSettingsDto;
@@ -97,7 +93,7 @@ export class UserController {
     return sendSuccess(res, result, 'User settings updated', StatusCodes.OK);
   });
 
-  updateProfile = catchAsync(async (
+  updateUserProfile = catchAsync(async (
     req: AuthenticatedRequest,
     res: Response<ApiResponse<UserResponseDto>>,
     _next: NextFunction
@@ -107,17 +103,17 @@ export class UserController {
     return sendSuccess(res, result, 'User profile updated', StatusCodes.OK);
   });
 
-  delete = catchAsync(async (
+  deleteUser = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<null>>,
     _next: NextFunction
   ) => {
-    const id = this.getIdParam(req);
+    const id = req.params.id.toString();
     await this.userService.deleteUser(id);
     return sendSuccess(res, null, 'User deleted', StatusCodes.OK);
   });
 
-  deleteMe = catchAsync(async (
+  deleteCurrentUser = catchAsync(async (
     req: AuthenticatedRequest,
     res: Response<ApiResponse<null>>,
     _next: NextFunction

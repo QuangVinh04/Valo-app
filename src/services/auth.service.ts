@@ -5,14 +5,12 @@ import {
   LoginRequestDto,
   RefreshTokenRequestDto,
   RegisterRequestDto,
-  RegisterResponseDto
 } from '../types/auth.type.js';
 import { UserRepository } from '../repositories/user.repository.js';
 import { GroupRepository } from '../repositories/group.repository.js';
 import AppError from '../utils/app-error.js';
 import { generateAccessToken, verifyRefreshToken, generateRefreshToken } from '../utils/jwt.util.js';
 import { AuthMapper } from '../mapper/auth.mapper.js';
-import { UserMapper } from '../mapper/user.mapper.js';
 import { withTransaction } from '../database/transaction.js';
 import { generateTemporaryPassword } from '../utils/password.util.js';
 import { EmailService } from './email.service.js';
@@ -51,7 +49,7 @@ export class AuthService {
   /**
    * Đăng ký tài khoản mới với nhóm mặc định, mật khẩu tạm thời và email thông báo.
    */
-  async registerUser(payload: RegisterRequestDto): Promise<RegisterResponseDto> {
+  async registerUser(payload: RegisterRequestDto): Promise<boolean> {
     const email = payload.email.trim().toLowerCase();
     const temporaryPassword = generateTemporaryPassword();
 
@@ -89,7 +87,7 @@ export class AuthService {
       temporaryPassword
     });
 
-    return UserMapper.toUserResponseDto(result);
+    return true;
   }
 
   /**

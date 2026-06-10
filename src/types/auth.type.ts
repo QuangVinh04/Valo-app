@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { UserResponseDto } from './user.type.js';
+import { UserSettingsDto } from './user.type.js';
 
 export const registerSchema = z.object({
   fullName: z.string().trim().min(1, 'fullName is required'),
@@ -18,14 +18,9 @@ export const changePasswordSchema = z.object({
 });
 
 export type RegisterRequestDto = z.infer<typeof registerSchema>;
-export type RegisterResponseDto = UserResponseDto;
 export type LoginRequestDto = z.infer<typeof loginSchema>;
 export type ChangePasswordRequestDto = z.infer<typeof changePasswordSchema>;
 
-export type UserSettingsDto = {
-  theme: 'dark' | 'light';
-  language: 'vi' | 'en';
-};
 
 export interface RefreshTokenRequestDto {
   refreshToken: string;
@@ -37,16 +32,7 @@ export interface AuthResponseDto {
   email: string;
   phoneNumber: string | null;
   address: string | null;
-  groups: Array<{
-    id: string;
-    name: string;
-    description: string | null;
-    permissions: string[];
-  }>;
   mustChangePassword: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  accessToken: string | null;
-  permissions: string[];
-  settings: UserSettingsDto;
+  accessToken: string;
+  settings: UserSettingsDto | null;
 }

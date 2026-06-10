@@ -2,7 +2,7 @@ import { NextFunction, Response } from 'express';
 import { ConversationService } from '../services/conversation.service.js';
 import catchAsync from '../utils/catch-async.js';
 import { ApiResponse, sendSuccess } from '../utils/api-response.js';
-import { ConversationListItemDto, ConversationResponseDto, CreateConversationRequestDto, UpdateConversationRequestDto } from '../types/conversation.type.js';
+import { CreateConversationRequestDto, UpdateConversationRequestDto, ConversationDetailResponseDto, ConversationUpdateResponseDto, ConversationSummaryResponseDto } from '../types/conversation.type.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { StatusCodes } from 'http-status-codes';
 import { getCursorPaginationOptions } from '../utils/pagination.util.js';
@@ -15,9 +15,9 @@ export class ConversationController {
     }
 
 
-    create = catchAsync(async (
+    createConversation = catchAsync(async (
         req: AuthenticatedRequest,
-        res: Response<ApiResponse<ConversationResponseDto>>,
+        res: Response<ApiResponse<ConversationDetailResponseDto>>,
         _next: NextFunction
     ) => {
         const userId = req.user.userId;
@@ -31,9 +31,9 @@ export class ConversationController {
         )
     });
 
-    getById = catchAsync(async (
+    getConversationById = catchAsync(async (
         req: AuthenticatedRequest,
-        res: Response<ApiResponse<ConversationResponseDto>>,
+        res: Response<ApiResponse<ConversationDetailResponseDto>>,
         _next: NextFunction
     ) => {
         const id = req.params.id.toString();
@@ -45,9 +45,9 @@ export class ConversationController {
             StatusCodes.OK);
     });
 
-    update = catchAsync(async (
+    updateConversation = catchAsync(async (
         req: AuthenticatedRequest,
-        res: Response<ApiResponse<ConversationResponseDto>>,
+        res: Response<ApiResponse<ConversationUpdateResponseDto>>,
         _next: NextFunction
     ) => {
         const id = req.params.id.toString();
@@ -60,7 +60,7 @@ export class ConversationController {
             StatusCodes.OK);
     });
 
-    delete = catchAsync(async (
+    deleteConversation = catchAsync(async (
         req: AuthenticatedRequest,
         res: Response<ApiResponse<null>>,
         _next: NextFunction
@@ -74,7 +74,7 @@ export class ConversationController {
             StatusCodes.OK);
     })
 
-    clearMine = catchAsync(async (
+    clearMyConversations = catchAsync(async (
         req: AuthenticatedRequest,
         res: Response<ApiResponse<{ deletedCount: number }>>,
         _next: NextFunction
@@ -87,9 +87,9 @@ export class ConversationController {
             StatusCodes.OK);
     });
 
-    list = catchAsync(async (
+    getConversations = catchAsync(async (
     req: AuthenticatedRequest,
-    res: Response<ApiResponse<ConversationListItemDto[]>>,
+    res: Response<ApiResponse<ConversationSummaryResponseDto[]>>,
     _next: NextFunction
   ) => {
     const userId = req.user.userId;

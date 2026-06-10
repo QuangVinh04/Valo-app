@@ -22,40 +22,40 @@ router.get(
   '/',
   authenticate,
   authorize(PermissionConstant.USER_READ.key),
-  userController.list
+  userController.getUsers
 );
 
-router.put(
+router.patch(
   '/settings',
   authenticate,
   validateRequest(updateUserSettingsSchema),
-  userController.updateSettings
+  userController.updateUserSettings
 );
 
-router.put(
+router.patch(
   '/profile',
   authenticate,
   validateRequest(updateUserProfileSchema),
-  userController.updateProfile
+  userController.updateUserProfile
 );
 
 router.get(
   '/me',
   authenticate,
-  userController.me
+  userController.getCurrentUser
 );
 
 router.delete(
   '/me',
   authenticate,
-  userController.deleteMe
+  userController.deleteCurrentUser
 );
 
 router.get(
   '/:id',
   authenticate,
   authorize(PermissionConstant.USER_READ.key),
-  userController.getById
+  userController.getUserById
 );
 
 router.post(
@@ -63,7 +63,7 @@ router.post(
   authenticate,
   authorize(PermissionConstant.USER_CREATE.key),
   validateRequest(createUserSchema),
-  userController.create
+  userController.createUser
 );
 
 router.put(
@@ -71,14 +71,14 @@ router.put(
   authenticate,
   authorize(PermissionConstant.USER_UPDATE.key),
   validateRequest(updateUserSchema),
-  userController.update
+  userController.updateUser
 );
 
 router.delete(
   '/:id',
   authenticate,
   authorize(PermissionConstant.USER_DELETE.key),
-  userController.delete
+  userController.deleteUser
 );
 
 export default router;

@@ -20,21 +20,21 @@ router.get(
   '/',
   authenticate,
   authorize(PermissionConstant.CONV_READ.key),
-  conversationController.list
+  conversationController.getConversations
 );
 
 router.delete(
   '/',
   authenticate,
   authorize(PermissionConstant.CONV_DELETE.key),
-  conversationController.clearMine
+  conversationController.clearMyConversations
 );
 
 router.get(
   '/:id',
   authenticate,
   authorize(PermissionConstant.CONV_READ.key),
-  conversationController.getById
+  conversationController.getConversationById
 );
 
 router.post(
@@ -42,7 +42,7 @@ router.post(
   authenticate,
   authorize(PermissionConstant.CONV_CREATE.key),
   validateRequest(createConversationSchema),
-  conversationController.create
+  conversationController.createConversation
 );
 
 router.put(
@@ -50,14 +50,14 @@ router.put(
   authenticate,
   authorize(PermissionConstant.CONV_UPDATE.key),
   validateRequest(updateConversationSchema),
-  conversationController.update
+  conversationController.updateConversation
 );
 
 router.delete(
   '/:id',
   authenticate,
   authorize(PermissionConstant.CONV_DELETE.key),
-  conversationController.delete
+  conversationController.deleteConversation
 );
 
 export default router;

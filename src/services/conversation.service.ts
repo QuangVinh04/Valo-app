@@ -36,7 +36,7 @@ export class ConversationService {
             });
         });
 
-        return ConversationMapper.toConversationResponseDto(conversation);
+        return ConversationMapper.toDetailDto(conversation);
     }
 
     /**
@@ -52,7 +52,7 @@ export class ConversationService {
             throw new AppError(ErrorCode.FORBIDDEN);
         }
 
-        return ConversationMapper.toConversationResponseDto(conversation);
+        return ConversationMapper.toDetailDto(conversation);
     }
 
     /**
@@ -77,7 +77,7 @@ export class ConversationService {
             }
             return result;
         });
-        return ConversationMapper.toConversationResponseDto(updated);
+        return ConversationMapper.toUpdateDto(updated);
 
     }
 
@@ -124,7 +124,7 @@ export class ConversationService {
         });
 
         return buildCursorPaginatedResult(
-            conversations.map(ConversationMapper.toConversationListItemDto),
+            conversations.map(ConversationMapper.toSummaryDto),
             pagination.limit
         );
     }

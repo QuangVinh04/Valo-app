@@ -20,14 +20,14 @@ router.get(
   '/',
   authenticate,
   authorize(PermissionConstant.GROUP_READ.key),
-  groupController.list
+  groupController.getGroups
 );
 
 router.get(
   '/:id',
   authenticate,
   authorize(PermissionConstant.GROUP_READ.key),
-  groupController.getById
+  groupController.getGroupById
 );
 
 router.post(
@@ -35,7 +35,7 @@ router.post(
   authenticate,
   authorize(PermissionConstant.GROUP_CREATE.key),
   validateRequest(groupSchema),
-  groupController.create
+  groupController.createGroup
 );
 
 router.put(
@@ -43,14 +43,14 @@ router.put(
   authenticate,
   authorize(PermissionConstant.GROUP_UPDATE.key),
   validateRequest(updateGroupSchema),
-  groupController.update
+  groupController.updateGroup
 );
 
 router.delete(
   '/:id',
   authenticate,
   authorize(PermissionConstant.GROUP_DELETE.key),
-  groupController.delete
+  groupController.deleteGroup
 );
 
 router.post(
@@ -58,7 +58,7 @@ router.post(
   authenticate,
   authorize(PermissionConstant.GROUP_UPDATE.key),
   validateRequest(groupMembersSchema),
-  groupController.addMembers
+  groupController.addGroupMembers
 );
 
 router.delete(
@@ -66,7 +66,7 @@ router.delete(
   authenticate,
   authorize(PermissionConstant.GROUP_UPDATE.key),
   validateRequest(groupMembersSchema),
-  groupController.removeMembers
+  groupController.removeGroupMembers
 );
 
 

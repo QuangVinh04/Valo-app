@@ -1,34 +1,40 @@
-import { ConversationFull, ConversationListItem } from "../repositories/conversation.repository.js";
-import { ConversationListItemDto, ConversationResponseDto } from "../types/conversation.type.js";
-
+import { ConversationFull } from "../repositories/conversation.repository.js";
+import { ConversationDetailResponseDto, ConversationSummaryResponseDto, ConversationUpdateResponseDto} from "../types/conversation.type.js";
+import { Conversation } from "@prisma/client";
 
 export class ConversationMapper {
-  static toConversationResponseDto(conversation: ConversationFull): ConversationResponseDto {
+
+ static toDetailDto(conversation: ConversationFull): ConversationDetailResponseDto {
     return {
       id: conversation.id,
       title: conversation.title,
       modelName: conversation.modelName,
-      userId: conversation.userId,
-      messages: conversation.messages.map(message => ({
-        id: message.id,
-        content: message.content,
-        senderType: message.senderType,
-        modelName: message.modelName,
-        createdAt: message.createdAt
+      messages: conversation.messages.map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        senderType: msg.senderType,
+        modelName: msg.modelName,
+        createdAt: msg.createdAt
       })),
-      createdAt: conversation.createdAt,
-      updatedAt: conversation.updatedAt
     };
   }
 
-  static toConversationListItemDto(conversation: ConversationListItem): ConversationListItemDto {
+
+  static toUpdateDto(conversation: Conversation): ConversationUpdateResponseDto {
     return {
       id: conversation.id,
       title: conversation.title,
       modelName: conversation.modelName,
-      userId: conversation.userId,
-      createdAt: conversation.createdAt,
-      updatedAt: conversation.updatedAt
+      updatedAt: conversation.updatedAt, 
     };
   }
+
+  static toSummaryDto(conversation: Conversation): ConversationSummaryResponseDto {
+    return {
+      id: conversation.id,
+      title: conversation.title,
+    };
+  }
+
+
 }

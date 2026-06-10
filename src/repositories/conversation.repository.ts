@@ -12,22 +12,11 @@ const conversationInclude = {
   },
 } satisfies Prisma.ConversationInclude;
 
-const conversationListSelect = {
-  id: true,
-  title: true,
-  modelName: true,
-  userId: true,
-  createdAt: true,
-  updatedAt: true,
-} satisfies Prisma.ConversationSelect;
 
 export type ConversationFull = Prisma.ConversationGetPayload<{
   include: typeof conversationInclude;
 }>;
 
-export type ConversationListItem = Prisma.ConversationGetPayload<{
-  select: typeof conversationListSelect;
-}>;
 
 export interface CreateConversationInput {
   title: string;
@@ -99,24 +88,13 @@ export class ConversationRepository {
     return result.count;
   }
 
-  async findMany(input: { userId: string; skip: number; take: number }): Promise<ConversationListItem[]> {
-    return this.prisma.conversation.findMany({
-      where: { userId: input.userId },
-      skip: input.skip,
-      take: input.take,
-      select: conversationListSelect,
-      orderBy: [
-        { updatedAt: 'desc' },
-        { id: 'desc' }
-      ],
-    });
-  }
+
 
   async findManyCursor(input: {
     userId: string;
     cursor?: string;
     take: number;
-  }): Promise<ConversationListItem[]> {
+  }): Promise<Conversation[]> {
     const cursor = input.cursor
       ? await this.prisma.conversation.findFirst({
         where: { id: input.cursor, userId: input.userId },
@@ -147,7 +125,6 @@ export class ConversationRepository {
           : {})
       },
       take: input.take,
-      select: conversationListSelect,
       orderBy: [
         { updatedAt: 'desc' },
         { id: 'desc' }
@@ -155,10 +132,5 @@ export class ConversationRepository {
     });
   }
 
-  async count(userId: string): Promise<number> {
-    return this.prisma.conversation.count({
-      where: { userId },
-    });
-  }
 
 }

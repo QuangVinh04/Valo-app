@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MessageResponseDto } from './message.type.js';
 
 export const createConversationSchema = z.object({
   title: z.string().trim().min(2, 'Title is required').max(100, 'Title is too long'),
@@ -16,28 +17,26 @@ export const updateConversationSchema = z.object({
 export type CreateConversationRequestDto = z.infer<typeof createConversationSchema>;
 export type UpdateConversationRequestDto = z.infer<typeof updateConversationSchema>;
 
-export interface ConversationResponseDto {
+// DTO cho API lấy danh sách ở Sidebar 
+export interface ConversationSummaryResponseDto {
   id: string;
   title: string;
-  modelName: string;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
-  messages: Array<{
-    id: string;
-    content: string;
-    senderType: string;
-    modelName: string;
-    createdAt: Date;
-  }>;
 }
 
-export interface ConversationListItemDto {
+// DTO cho API cập nhật (Update) hoặc tạo mới (Create)
+export interface ConversationUpdateResponseDto {
   id: string;
   title: string;
   modelName: string;
-  userId: string;
-  createdAt: Date;
-  updatedAt: Date;
+  updatedAt: Date; 
 }
+
+
+export interface ConversationDetailResponseDto {
+  id: string;
+  title: string;
+  modelName: string;
+  messages: MessageResponseDto[];
+}
+
    

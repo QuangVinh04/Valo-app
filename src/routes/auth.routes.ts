@@ -19,10 +19,10 @@ const authController = new AuthController(authService);
 
 router.use(authRateLimit);
 
-router.post('/register', validateRequest(registerSchema), authController.register);
-router.post('/login', validateRequest(loginSchema), authController.login);
-router.post('/logout', authenticate, authController.logout);
-router.post('/refresh-token', authController.refreshToken);
+router.post('/register', validateRequest(registerSchema), authController.registerUser);
+router.post('/login', validateRequest(loginSchema), authController.loginUser);
+router.post('/logout', authenticate, authController.logoutUser);
+router.post('/refresh-token', authController.refreshAccessToken);
 router.post('/change-password', authenticate, validateRequest(changePasswordSchema), authController.changePassword);
 
 export default router;
