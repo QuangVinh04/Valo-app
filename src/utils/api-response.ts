@@ -30,29 +30,29 @@ export const sendSuccess = <T>(
   data: T,
   message = 'Success',
   statusCode = 200,
-  meta: ResponseMeta | null = null 
+  meta?: ResponseMeta 
 ): Response<ApiResponse<T>> => {
   return res.status(statusCode).json({
     success: true,
     message,
     data,
-    meta,
+    ...(meta && { meta })
   });
 };
 
 
 export const sendError = (
   res: Response,
-  message = 'Internal Server Error',
+  message = 'Internal server error',
   statusCode = 500,
-  code = 9009,
-  errors: ResponseErrorDetail[] | null = null
+  code = 'INTERNAL_SERVER_ERROR',
+  errors?: ResponseErrorDetail[]
 ): Response<ApiResponse<null>> => {
   return res.status(statusCode).json({
     success: false,
-    message,
-    data: null,
     code,
-    errors,
+    message,
+    ...(errors && errors.length > 0 && { errors })
   });
+
 };

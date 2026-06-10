@@ -9,12 +9,13 @@ import logger from '../utils/logger.util.js';
 const isDevelopment = env.NODE_ENV !== 'production';
 
 export const notFoundHandler = (req: Request, res: Response) => {
-  const routeNotFound = ErrorCode.ROUTE_NOT_FOUND;
+  const error = ErrorCode.ROUTE_NOT_FOUND;
+  
   return sendError(
     res, 
     `Route not found: ${req.originalUrl}`,
-    routeNotFound.statusCode,
-    routeNotFound.code
+    error.statusCode,
+    error.code
   );
 };
 
