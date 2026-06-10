@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { UserResponseDto } from './user.type.js';
 
 export const registerSchema = z.object({
   fullName: z.string().trim().min(1, 'fullName is required'),
@@ -17,6 +18,7 @@ export const changePasswordSchema = z.object({
 });
 
 export type RegisterRequestDto = z.infer<typeof registerSchema>;
+export type RegisterResponseDto = UserResponseDto;
 export type LoginRequestDto = z.infer<typeof loginSchema>;
 export type ChangePasswordRequestDto = z.infer<typeof changePasswordSchema>;
 

@@ -52,7 +52,7 @@ export function verifyToken(token: string): AccessTokenPayload {
   try {
     const decoded = jwt.verify(token, secret) as AccessTokenPayload;
     return decoded;
-  } catch (err) {
+  } catch {
     throw new AppError(ErrorCode.INVALID_TOKEN, 'Invalid token');
   }
 }
@@ -61,7 +61,7 @@ export function verifyRefreshToken(token: string): RefreshTokenPayload {
   try {
     const decoded = jwt.verify(token, secret) as RefreshTokenPayload;
     return decoded;
-  } catch (err) {
+  } catch {
     throw new AppError(ErrorCode.INVALID_TOKEN, 'Invalid refresh token');
   }
 }

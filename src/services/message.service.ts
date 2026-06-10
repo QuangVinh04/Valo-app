@@ -2,6 +2,7 @@ import { ConversationRepository } from '../repositories/conversation.repository.
 import MessageRepository from '../repositories/message.repository.js';
 import UserRepository from '../repositories/user.repository.js';
 import { ErrorCode } from '../constants/error-code.js';
+import { MessageMapper } from '../mapper/message.mapper.js';
 import { withTransaction } from '../database/transaction.js';
 import AppError from '../utils/app-error.js';
 import { SendMessageRequestDto } from '../types/message.type.js';
@@ -73,7 +74,7 @@ export class MessageService {
 
       return {
         conversationId: targetConversationId,
-        userMessage,
+        userMessage: MessageMapper.toMessageResponseDto(userMessage),
         context: buildChatContext(history),
       };
     });
@@ -88,12 +89,14 @@ export class MessageService {
     content: string,
     modelName: string
   ) {
-    return this.messageRepo.create({
+    const assistantMessage = await this.messageRepo.create({
       conversationId,
       content,
       senderType: 'assistant',
       modelName,
     });
+
+    return MessageMapper.toMessageResponseDto(assistantMessage);
   }
 }
 

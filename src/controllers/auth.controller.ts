@@ -3,7 +3,8 @@ import type {
   AuthResponseDto,
   ChangePasswordRequestDto,
   LoginRequestDto,
-  RegisterRequestDto
+  RegisterRequestDto,
+  RegisterResponseDto
 } from '../types/auth.type.js';
 import { AuthService } from '../services/auth.service.js';
 import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
@@ -20,7 +21,7 @@ export class AuthController {
 
   register = catchAsync(async (
     req: Request,
-    res: Response<ApiResponse<AuthResponseDto>>,
+    res: Response<ApiResponse<RegisterResponseDto>>,
     _next: NextFunction
   ) => {
     const payload = req.body as RegisterRequestDto;

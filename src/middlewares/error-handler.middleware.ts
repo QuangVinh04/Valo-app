@@ -1,12 +1,10 @@
 import type { NextFunction, Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
-import env from '../config/env.js';
-import { ErrorCode } from '../constants/error-code.js';
+import { ErrorCode, type ErrorCodeDescription } from '../constants/error-code.js';
 import { sendError } from '../utils/api-response.js';
 import logger from '../utils/logger.util.js';
 
-
-const isDevelopment = env.NODE_ENV !== 'production';
 
 export const notFoundHandler = (req: Request, res: Response) => {
   const error = ErrorCode.ROUTE_NOT_FOUND;
@@ -19,16 +17,44 @@ export const notFoundHandler = (req: Request, res: Response) => {
   );
 };
 
+const resolvePrismaError = (err: unknown): ErrorCodeDescription | null => {
+  if (!(err instanceof Prisma.PrismaClientKnownRequestError)) {
+    return null;
+  }
+
+  if (err.code === 'P2002') {
+    const target = Array.isArray(err.meta?.target) ? err.meta.target : [];
+
+    if (target.includes('email')) {
+      return ErrorCode.EMAIL_ALREADY_IN_USE;
+    }
+
+    if (target.includes('name')) {
+      return ErrorCode.GROUP_NAME_ALREADY_IN_USE;
+    }
+
+    return ErrorCode.BAD_REQUEST;
+  }
+
+  if (err.code === 'P2025') {
+    return ErrorCode.BAD_REQUEST;
+  }
+
+  return null;
+};
+
 export const globalErrorHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
   const isZodError = err instanceof ZodError;
+  const isOperational = err?.isOperational === true;
+  const prismaMeta = resolvePrismaError(err);
   const fallbackMeta = ErrorCode.INTERNAL_SERVER_ERROR;
   const resolvedMeta = isZodError
     ? ErrorCode.VALIDATION_FAILED
-    : (err.errorKey && ErrorCode[err.errorKey]) || fallbackMeta;
+    : prismaMeta ?? (isOperational ? err : fallbackMeta);
     
-  const statusCode = isZodError ? resolvedMeta.statusCode : err.statusCode || resolvedMeta.statusCode;
-  const code = err.code || resolvedMeta.code;
-  const message = isZodError ? resolvedMeta.message : err.message || resolvedMeta.message;
+  const statusCode = resolvedMeta.statusCode;
+  const code = resolvedMeta.code;
+  const message = isOperational && err.message ? err.message : resolvedMeta.message;
 
   let errors: any[] | null = null;
 

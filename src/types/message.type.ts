@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AI_MODELS_VALUES, AiModelKey } from '../constants/ai-model.constant.js';
+import { AI_MODELS_VALUES } from '../constants/ai-model.constant.js';
 
 
 
@@ -16,7 +16,7 @@ export interface MessageResponseDto {
   id: string;
   content: string;
   senderType: string;
-  modelName: AiModelKey;
+  modelName: string | null;
   createdAt: Date;
 }
 
