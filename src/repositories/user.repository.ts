@@ -82,6 +82,39 @@ export class UserRepository {
     });
   }
 
+  async findPermissionKeysByUserId(id: string): Promise<string[] | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        userGroups: {
+          select: {
+            group: {
+              select: {
+                groupPermissions: {
+                  select: {
+                    permissionKey: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    return [
+      ...new Set(
+        user.userGroups.flatMap((userGroup) =>
+          userGroup.group.groupPermissions.map((permission) => permission.permissionKey)
+        )
+      ),
+    ];
+  }
+
 
   private buildUserWhere(input: Pick<UserFindManyInput, 'search' | 'groupId' | 'mustChangePassword'>): Prisma.UserWhereInput {
     return {

@@ -15,7 +15,6 @@ import { withTransaction } from '../database/transaction.js';
 import { generateTemporaryPassword } from '../utils/password.util.js';
 import { EmailService } from './email.service.js';
 import { hashString, compareString } from '../utils/auth.util.js';
-import type { UserFull } from '../repositories/user.repository.js';
 
 
 
@@ -31,19 +30,6 @@ export class AuthService {
     this.userRepository = userRepository;
     this.groupRepository = groupRepository;
     this.emailService = emailService;
-  }
-
-  /**
-   * Gom tất cả quyền từ các nhóm của người dùng để nhúng vào access token.
-   */
-  private getPermissionKeys(user: UserFull): string[] {
-    return [
-      ...new Set(
-        user.userGroups.flatMap((userGroup) =>
-          userGroup.group.groupPermissions.map((permission) => permission.permissionKey)
-        )
-      )
-    ];
   }
 
   /**
@@ -111,7 +97,6 @@ export class AuthService {
 
     const accessToken = generateAccessToken({
       id: user.id,
-      permissions: this.getPermissionKeys(user),
     });
 
     const refreshToken = generateRefreshToken({
@@ -161,10 +146,19 @@ export class AuthService {
 
     const accessToken = generateAccessToken({
       id: user.id,
-      permissions: this.getPermissionKeys(user),
     });
 
     return AuthMapper.toAuthResponse(user, accessToken);
+  }
+
+  async getUserPermissions(userId: string): Promise<string[]> {
+    const permissions = await this.userRepository.findPermissionKeysByUserId(userId);
+
+    if (!permissions) {
+      throw new AppError(ErrorCode.USER_NOT_FOUND);
+    }
+
+    return permissions;
   }
 
   /**

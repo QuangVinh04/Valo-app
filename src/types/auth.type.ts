@@ -34,5 +34,5 @@ export interface AuthResponseDto {
   address: string | null;
   mustChangePassword: boolean;
   accessToken: string;
-  settings: UserSettingsDto | null;
+  settings: UserSettingsDto;
 }

@@ -6,12 +6,10 @@ import env from '../config/env.js';
 
 interface UserPayload {
   id: string;
-  permissions?: string[];
 }
 
 export interface AccessTokenPayload extends JwtPayload {
   userId: string;
-  permissions: string[];
 }
 
 export interface RefreshTokenPayload extends JwtPayload {
@@ -26,7 +24,6 @@ const secret: Secret = env.JWT_SECRET as Secret;
 export function generateAccessToken(user: UserPayload): string {
   const payload = {
     userId: user.id,
-    permissions: user.permissions ?? []
   };
   const options: SignOptions = {
     expiresIn: env.JWT_VALID_DURATION,

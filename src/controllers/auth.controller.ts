@@ -113,5 +113,15 @@ export class AuthController {
 
     return sendSuccess(res, null, 'Password changed successfully', StatusCodes.OK);
   });
+
+  getCurrentUserPermissions = catchAsync(async (
+    req: AuthenticatedRequest,
+    res: Response<ApiResponse<string[]>>,
+    _next: NextFunction
+  ) => {
+    const result = await this.authService.getUserPermissions(req.user.userId);
+
+    return sendSuccess(res, result, 'Permissions found', StatusCodes.OK);
+  });
 }
 export default AuthController;

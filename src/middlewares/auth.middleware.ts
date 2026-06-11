@@ -1,13 +1,17 @@
 import type { NextFunction, Request, Response } from 'express';
 
 import { ErrorCode } from '../constants/error-code.js';
+import { PrismaService } from '../config/prisma.js';
+import { UserRepository } from '../repositories/user.repository.js';
 import AppError from '../utils/app-error.js';
 import { verifyToken } from '../utils/jwt.util.js';
+
+const prismaService = PrismaService.getInstance();
+const userRepository = new UserRepository(prismaService.client);
 
 export interface AuthenticatedRequest extends Request {
   user: {
     userId: string;
-    permissions: string[];
   };
 }
 
@@ -30,7 +34,6 @@ export const authenticate = (
 
     req.user = {
       userId: payload.userId,
-      permissions: payload.permissions ?? []
     };
 
     next();
@@ -40,14 +43,14 @@ export const authenticate = (
 };
 
 export function authorize(...requiredPermissions: string[]) {
-  return (
+  return async (
     req: AuthenticatedRequest,
     _res: Response,
-    next: NextFunction): void => {
+    next: NextFunction): Promise<void> => {
     try {
-      const permissions = req.user?.permissions;
+      const permissions = await userRepository.findPermissionKeysByUserId(req.user.userId);
       if (!permissions || !Array.isArray(permissions)) {
-        throw new AppError(ErrorCode.FORBIDDEN, 'Access denied. No permissions found in token.');
+        throw new AppError(ErrorCode.FORBIDDEN, 'Access denied. No permissions found.');
       }
 
       const hasPermission = requiredPermissions.every(permission => permissions.includes(permission));
