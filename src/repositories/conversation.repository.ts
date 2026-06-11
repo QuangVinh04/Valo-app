@@ -9,6 +9,7 @@ const conversationInclude = {
     orderBy: {
       createdAt: 'asc'
     },
+    take: 10
   },
 } satisfies Prisma.ConversationInclude;
 
@@ -56,9 +57,9 @@ export class ConversationRepository {
     });
   }
 
-  async getByIdForUser(id: string): Promise<ConversationFull | null> {
-    return this.prisma.conversation.findUnique({
-      where: { id },
+  async getByIdAndUserId(id: string, userId: string): Promise<ConversationFull | null> {
+    return this.prisma.conversation.findFirst({
+      where: { id, userId },
       include: conversationInclude
     });
   }
