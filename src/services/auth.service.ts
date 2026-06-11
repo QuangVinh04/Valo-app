@@ -84,7 +84,7 @@ export class AuthService {
     refreshToken: string;
   }> {
     const email = payload.email.trim().toLowerCase();
-    const user = await this.userRepository.findByEmailForAuth(email);
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
@@ -127,12 +127,12 @@ export class AuthService {
     }
     const decoded = verifyRefreshToken(token);
 
-    const user = await this.userRepository.findByIdForAuth(decoded.userId);
+    const user = await this.userRepository.findById(decoded.userId);
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
 
-    const storedRefreshToken = await this.userRepository.findRefreshTokenByUserId(user.id);
+    const storedRefreshToken = user.refreshToken;
 
     if (!storedRefreshToken) {
       throw new AppError(ErrorCode.INVALID_TOKEN, 'No refresh token found for user');

@@ -62,23 +62,18 @@ export class UserRepository {
     return this.prisma.user.findUnique({ where: { email } });
   }
 
-  async findByEmailForAuth(email: string): Promise<UserFull | null> {
-    return this.prisma.user.findUnique({
-      where: { email },
-      include: userInclude,
-    });
-  }
 
   async findById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({ where: { id } });
   }
 
-  async findByIdForAuth(id: string): Promise<UserFull | null> {
+  async findFullById(id: string): Promise<UserFull | null> {
     return this.prisma.user.findUnique({
       where: { id },
       include: userInclude,
     });
   }
+
 
   async findPermissionKeysByUserId(id: string): Promise<string[] | null> {
     const user = await this.prisma.user.findUnique({
@@ -170,7 +165,7 @@ export class UserRepository {
   }
 
 
-  async createUser(input: CreateUserInput): Promise<UserFull> {
+  async createUser(input: CreateUserInput): Promise<User> {
     return this.prisma.user.create({
       data: {
         fullName: input.fullName,
@@ -180,7 +175,6 @@ export class UserRepository {
         password: input.password,
         mustChangePassword: input.mustChangePassword ?? true,
       },
-      include: userInclude,
     });
   }
 
@@ -247,11 +241,6 @@ export class UserRepository {
         refreshToken: null,
       },
     });
-  }
-
-  async findRefreshTokenByUserId(userId: string): Promise<string | null> {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    return user?.refreshToken || null;
   }
 }
 

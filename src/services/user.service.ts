@@ -61,7 +61,7 @@ export class UserService {
    * Lấy thông tin một người dùng theo ID; báo lỗi nếu không tìm thấy.
    */
   async getUserById(id: string): Promise<UserResponseDto> {
-    const user = await this.userRepo.findByIdForAuth(id);
+    const user = await this.userRepo.findFullById(id);
 
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
