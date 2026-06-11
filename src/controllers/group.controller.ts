@@ -5,7 +5,9 @@ import type {
   GroupMembersRequestDto,
   GroupRequestDto,
   GroupResponseDto,
-  UpdateGroupRequestDto
+  UpdateGroupRequestDto,
+  GroupMemberDto,
+  CreatedGroupDto
 } from '../types/group.type.js';
 import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
 import catchAsync from '../utils/catch-async.js';
@@ -40,7 +42,7 @@ export class GroupController {
 
   createGroup = catchAsync(async (
     req: Request,
-    res: Response<ApiResponse<GroupResponseDto>>,
+    res: Response<ApiResponse<CreatedGroupDto>>,
     _next: NextFunction
   ) => {
     const payload = req.body as GroupRequestDto;
@@ -69,10 +71,20 @@ export class GroupController {
     return sendSuccess(res, null, 'Group deleted', StatusCodes.OK);
   });
 
+  getGroupMembers = catchAsync(async (
+    req: Request,
+    res: Response<ApiResponse<GroupMemberDto>>,
+    _next: NextFunction
+  ) => {
+    const id = req.params.id.toString();
+    const result = await this.groupService.getGroupMembers(id);
+    return sendSuccess(res, result, 'Group members found', StatusCodes.OK);
+  });
+
 
   addGroupMembers = catchAsync(async (
     req: Request,
-    res: Response<ApiResponse<GroupResponseDto>>,
+    res: Response<ApiResponse<GroupMemberDto>>,
     _next: NextFunction
   ) => {
     const payload = req.body as GroupMembersRequestDto;
@@ -85,7 +97,7 @@ export class GroupController {
 
   removeGroupMembers = catchAsync(async (
     req: Request,
-    res: Response<ApiResponse<GroupResponseDto>>,
+    res: Response<ApiResponse<GroupMemberDto>>,
     _next: NextFunction
   ) => {
     const payload = req.body as GroupMembersRequestDto;

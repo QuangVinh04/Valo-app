@@ -17,9 +17,24 @@ const groupInclude = {
   },
 } satisfies Prisma.GroupInclude;
 
+
+
+const groupListInclude = {
+  _count: {
+    select: {
+      userGroups: true, 
+    },
+  },
+} satisfies Prisma.GroupInclude;
+
 export type GroupFull = Prisma.GroupGetPayload<{
   include: typeof groupInclude;
 }>;
+
+export type GroupListItem = Prisma.GroupGetPayload<{
+  include: typeof groupListInclude;
+}>;
+
 
 
 export interface CreateGroupInput {
@@ -48,7 +63,7 @@ export class GroupRepository {
     });
   }
 
-  async findByIdWithPermissions(id: string) {
+  async findFullById(id: string) {
     return this.prisma.group.findUnique({
       where: { id },
       include: groupInclude,
@@ -74,7 +89,7 @@ export class GroupRepository {
     return this.prisma.group.findMany({
       skip: input.skip,
       take: input.take,
-      include: groupInclude,
+      include: groupListInclude,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -100,7 +115,6 @@ export class GroupRepository {
           })),
         },
       },
-      include: groupInclude,
     });
   }
 

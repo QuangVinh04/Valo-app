@@ -26,11 +26,29 @@ export interface GroupResponseDto {
     description: string | null;
     permissions: string[];
     memberCount: number;
+    createdAt: Date;
+    updatedAt: Date;
+}
+
+export interface GroupListItemDto {
+    id: string;
+    name: string;
+    description: string | null;
+    memberCount: number;
+}
+
+export interface GroupMemberDto {
+    id: string;
+    name: string;
+    memberCount: number;
     members: Array<{
         id: string;
         fullName: string;
         email: string;
     }>;
-    createdAt: Date;
-    updatedAt: Date;
 }
+
+export interface CreatedGroupDto{
+    id: string;
+}
+

@@ -3,6 +3,7 @@ import { StatusCodes } from 'http-status-codes';
 export interface ErrorCodeDescription {
   readonly message: string;
   readonly statusCode: number;
+  readonly code?: string;
 }
 
 export const ErrorCode = {

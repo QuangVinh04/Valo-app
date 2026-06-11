@@ -1,5 +1,5 @@
 import { GroupRepository } from '../repositories/group.repository.js';
-import { GroupRequestDto, UpdateGroupRequestDto } from '../types/group.type.js';
+import { CreatedGroupDto, GroupMemberDto, GroupRequestDto, GroupResponseDto, UpdateGroupRequestDto } from '../types/group.type.js';
 import { withTransaction } from '../database/transaction.js';
 import { GroupMapper } from '../mapper/group.mapper.js';
 import AppError from '../utils/app-error.js';
@@ -31,7 +31,7 @@ export class GroupService {
   /**
    * Lấy danh sách nhóm theo phân trang và chuyển sang DTO trả về cho client.
    */
-  async getGroups(pagination: PaginationOptions) {
+  async getGroups(pagination: PaginationOptions): Promise<any> {
     const [groups, totalItems] = await Promise.all([
       this.groupRepository.findMany({
         skip: pagination.skip,
@@ -41,7 +41,7 @@ export class GroupService {
     ]);
 
     return buildPaginatedResult(
-      groups.map((group) => GroupMapper.toGroupResponseDto(group)),
+      groups.map((group) => GroupMapper.toGroupListItemDto(group)),
       totalItems,
       pagination
     );
@@ -50,8 +50,8 @@ export class GroupService {
   /**
    * Lấy chi tiết một nhóm kèm quyền; báo lỗi nếu nhóm không tồn tại.
    */
-  async getGroupById(id: string) {
-    const group = await this.groupRepository.findByIdWithPermissions(id);
+  async getGroupById(id: string): Promise<GroupResponseDto> {
+    const group = await this.groupRepository.findFullById(id);
     if (!group) {
       throw new AppError(ErrorCode.GROUP_NOT_FOUND);
     }
@@ -62,7 +62,7 @@ export class GroupService {
   /**
    * Tạo nhóm mới sau khi chuẩn hóa tên, kiểm tra trùng tên và gán quyền mặc định.
    */
-  async createGroup(payload: GroupRequestDto) {
+  async createGroup(payload: GroupRequestDto): Promise<CreatedGroupDto> {
     const name = payload.name.trim();
     const existingGroup = await this.groupRepository.findByName(name);
     if (existingGroup) {
@@ -79,13 +79,13 @@ export class GroupService {
       });
     });
 
-    return GroupMapper.toGroupResponseDto(result);
+    return { id: result.id };
   }
 
   /**
    * Cập nhật thông tin nhóm và thay thế danh sách quyền nếu payload có truyền permissions.
    */
-  async updateGroup(id: string, payload: UpdateGroupRequestDto) {
+  async updateGroup(id: string, payload: UpdateGroupRequestDto): Promise<boolean> {
     const result = await withTransaction(async (tx) => {
       const groupRepo = new GroupRepository(tx);
       const group = await groupRepo.findById(id);
@@ -116,16 +116,8 @@ export class GroupService {
           await groupRepo.createPermissions(id, permissionKeys);
         }
       }
-
-      const updatedGroup = await groupRepo.findByIdWithPermissions(id);
-
-      if (!updatedGroup) {
-        throw new AppError(ErrorCode.GROUP_NOT_FOUND);
-      }
-
-      return updatedGroup;
     });
-    return GroupMapper.toGroupResponseDto(result);
+    return true;
   }
 
 
@@ -142,10 +134,24 @@ export class GroupService {
   }
 
 
+
+   /**
+   * Lay danh sach thanh vien trong nhom
+   */
+  async getGroupMembers(groupId: string): Promise<GroupMemberDto> {
+    const group = await this.groupRepository.findFullById(groupId);
+    if (!group) {
+      throw new AppError(ErrorCode.GROUP_NOT_FOUND);
+    }
+    
+    return GroupMapper.toGroupMemberResponseDto(group);
+  }
+
+
   /**
    * Thêm người dùng vào nhóm trong một transaction và trả về nhóm đã cập nhật.
    */
-  async addMembers(groupId: string, userIds: string[]) {
+  async addMembers(groupId: string, userIds: string[]): Promise<GroupMemberDto> {
     const group = await withTransaction(async (tx) => {
       const groupRepo = new GroupRepository(tx);
       const userRepo = new UserRepository(tx);
@@ -160,14 +166,14 @@ export class GroupService {
 
       await groupRepo.addMembers(groupId, normalizedUserIds);
 
-      const result = await groupRepo.findByIdWithPermissions(groupId);
+      const result = await groupRepo.findFullById(groupId);
       if (!result) {
         throw new AppError(ErrorCode.GROUP_NOT_FOUND);
       }
       return result;
     });
 
-    return GroupMapper.toGroupResponseDto(group);
+    return GroupMapper.toGroupMemberResponseDto(group);
   }
 
   /**
@@ -188,14 +194,14 @@ export class GroupService {
 
       await groupRepo.removeMembers(groupId, normalizedUserIds);
 
-      const result = await groupRepo.findByIdWithPermissions(groupId);
+      const result = await groupRepo.findFullById(groupId);
       if (!result) {
         throw new AppError(ErrorCode.GROUP_NOT_FOUND);
       }
       return result;
     });
 
-    return GroupMapper.toGroupResponseDto(group);
+    return GroupMapper.toGroupMemberResponseDto(group);
   }
 
   /**

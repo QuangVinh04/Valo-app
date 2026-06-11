@@ -53,6 +53,13 @@ router.delete(
   groupController.deleteGroup
 );
 
+router.get(
+  '/:id/users',
+  authenticate,
+  authorize(PermissionConstant.GROUP_READ.key),
+  groupController.getGroupMembers
+);
+
 router.post(
   '/:id/users',
   authenticate,

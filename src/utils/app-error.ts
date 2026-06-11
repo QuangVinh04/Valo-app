@@ -10,7 +10,7 @@ export default class AppError extends Error {
     super(customMessage ?? error.message);
 
     this.statusCode = error.statusCode;
-    this.code = error.code;
+    this.code = error.code ?? error.message;
     this.isOperational = true;
 
     Object.setPrototypeOf(this, new.target.prototype);
