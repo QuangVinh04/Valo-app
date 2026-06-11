@@ -7,7 +7,7 @@ import { validateRequest } from '../middlewares/validation.middleware.js';
 import { GroupRepository } from '../repositories/group.repository.js';
 import { UserRepository } from '../repositories/user.repository.js';
 import { UserService } from '../services/user.service.js';
-import { createUserSchema, updateUserProfileSchema, updateUserSchema, updateUserSettingsSchema } from '../types/user.type.js';
+import { assignUserGroupsSchema, createUserSchema, updateUserProfileSchema, updateUserSchema, updateUserSettingsSchema } from '../types/user.type.js';
 import EmailService from '../services/email.service.js';
 
 const router = Router();
@@ -72,6 +72,14 @@ router.put(
   authorize(PermissionConstant.USER_UPDATE.key),
   validateRequest(updateUserSchema),
   userController.updateUser
+);
+
+router.post(
+  '/:id/groups',
+  authenticate,
+  authorize(PermissionConstant.USER_UPDATE.key),
+  validateRequest(assignUserGroupsSchema),
+  userController.assignGroups
 );
 
 router.delete(

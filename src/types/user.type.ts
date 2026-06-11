@@ -5,30 +5,43 @@ export const createUserSchema = z.object({
   email: z.email('Invalid email').transform((value) => value.trim().toLowerCase()),
   phoneNumber: z.string().trim().max(32, 'phoneNumber is too long').optional(),
   address: z.string().trim().max(255, 'address is too long').optional(),
-  groupIds: z.array(z.uuid()).min(1, 'At least one group is required').optional()
 });
 
 export const updateUserSchema = z.object({
   fullName: z.string().trim().min(1, 'fullName is required').optional(),
   phoneNumber: z.string().trim().max(32, 'phoneNumber is too long').optional(),
   address: z.string().trim().max(255, 'address is too long').optional(),
-  groupIds: z.array(z.uuid()).min(1, 'At least one group is required').optional()
 }).refine(
   (value) => Object.keys(value).length > 0,
   'At least one field is required'
 );
 
+export const assignUserGroupsSchema = z.object({
+  groupIds: z.array(z.uuid()).min(1, 'At least one group is required')
+});
+
 export type CreateUserRequestDto = z.infer<typeof createUserSchema>;
 export type UpdateUserRequestDto = z.infer<typeof updateUserSchema>;
+export type AssignUserGroupsRequestDto = z.infer<typeof assignUserGroupsSchema>;
+
+export const updateUserProfileSchema = z.object({
+  phoneNumber: z.string().trim().max(32, 'phoneNumber is too long').optional(),
+  address: z.string().trim().max(255, 'address is too long').optional()
+}).refine(
+  (value) => Object.keys(value).length > 0,
+  'At least one field is required'
+);
+
+export type UserProfileDto = z.infer<typeof updateUserProfileSchema>;
 
 export const UserSettingsSchema = z.object({
   theme: z.enum(['dark', 'light']),
   language: z.enum(['vi', 'en'])
 });
 
+export const updateUserSettingsSchema = UserSettingsSchema;
+
 export type UserSettingsDto = z.infer<typeof UserSettingsSchema>;
-
-
 
 
 export interface UserResponseDto {
@@ -45,4 +58,27 @@ export interface UserResponseDto {
   mustChangePassword: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface UserListItemDto {
+  id: string;
+  fullName: string;
+  email: string;
+  groups: Array<{
+    id: string;
+    name: string;
+    description: string | null;
+  }>;
+}
+
+export interface CreatedUserDto {
+  id: string;
+}
+
+export interface UserProfileResponseDto {
+  id: string;
+  fullName: string;
+  phoneNumber: string | null;
+  address: string | null;
+  settings: UserSettingsDto;
 }

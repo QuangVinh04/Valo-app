@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { UserService } from '../services/user.service.js';
-import type { CreateUserRequestDto, UpdateUserRequestDto, UserProfileDto, UserResponseDto, UserSettingsDto } from '../types/user.type.js';
+import type { AssignUserGroupsRequestDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserProfileDto, UserProfileResponseDto, UserResponseDto, UserSettingsDto } from '../types/user.type.js';
 import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
 import catchAsync from '../utils/catch-async.js';
 import { getPaginationOptions } from '../utils/pagination.util.js';
@@ -33,7 +33,7 @@ export class UserController {
 
   getUsers = catchAsync(async (
     req: Request,
-    res: Response<ApiResponse<UserResponseDto[]>>,
+    res: Response<ApiResponse<UserListItemDto[]>>,
     _next: NextFunction
   ) => {
 
@@ -64,7 +64,7 @@ export class UserController {
 
   createUser = catchAsync(async (
     req: Request,
-    res: Response<ApiResponse<UserResponseDto>>,
+    res: Response<ApiResponse<CreatedUserDto>>,
     _next: NextFunction
   ) => {
     const payload = req.body as CreateUserRequestDto;
@@ -74,7 +74,7 @@ export class UserController {
 
   updateUser = catchAsync(async (
     req: Request,
-    res: Response<ApiResponse<UserResponseDto>>,
+    res: Response<ApiResponse<boolean>>,
     _next: NextFunction
   ) => {
     const payload = req.body as UpdateUserRequestDto;
@@ -83,9 +83,20 @@ export class UserController {
     return sendSuccess(res, result, 'User updated', StatusCodes.OK);
   });
 
+  assignGroups = catchAsync(async (
+    req: Request,
+    res: Response<ApiResponse<boolean>>,
+    _next: NextFunction
+  ) => {
+    const payload = req.body as AssignUserGroupsRequestDto;
+    const id = req.params.id.toString();
+    const result = await this.userService.assignGroups(id, payload);
+    return sendSuccess(res, result, 'User groups assigned', StatusCodes.OK);
+  });
+
   updateUserSettings = catchAsync(async (
     req: AuthenticatedRequest,
-    res: Response<ApiResponse<UserResponseDto>>,
+    res: Response<ApiResponse<UserSettingsDto>>,
     _next: NextFunction
   ) => {
     const payload = req.body as UserSettingsDto;
@@ -95,7 +106,7 @@ export class UserController {
 
   updateUserProfile = catchAsync(async (
     req: AuthenticatedRequest,
-    res: Response<ApiResponse<UserResponseDto>>,
+    res: Response<ApiResponse<UserProfileResponseDto>>,
     _next: NextFunction
   ) => {
     const payload = req.body as UserProfileDto;

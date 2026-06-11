@@ -2,14 +2,10 @@ import { User } from '@prisma/client';
 import { AuthResponseDto } from '../types/auth.type.js';
 import { UserSettingsDto, UserSettingsSchema } from '../types/user.type.js';
 
-const defaultUserSettings: UserSettingsDto = {
-  theme: 'dark',
-  language: 'vi',
-};
 
 function mapUserSettings(settings: User['settings']): UserSettingsDto {
   const result = UserSettingsSchema.safeParse(settings);
-  return result.success ? result.data : defaultUserSettings;
+  return result.success ? result.data : undefined;
 }
 
 export class AuthMapper {

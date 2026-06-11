@@ -35,14 +35,14 @@ export async function seedAdmin(prisma: PrismaClient): Promise<void> {
     return;
   }
 
-  await userRepository.createUser({
+  const user = await userRepository.createUser({
     fullName: DEFAULT_ADMIN_FULL_NAME.trim(),
     email,
     password: await hashString(DEFAULT_ADMIN_PASSWORD),
     mustChangePassword: true,
-    groupIds: [adminGroup.id]
   });
 
+  await userRepository.assignGroups(user.id, [adminGroup.id]);
   
 
   logger.info('Default admin user created', { email });

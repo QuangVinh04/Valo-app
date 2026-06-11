@@ -147,7 +147,6 @@ export class GroupService {
     return GroupMapper.toGroupMemberResponseDto(group);
   }
 
-
   /**
    * Thêm người dùng vào nhóm trong một transaction và trả về nhóm đã cập nhật.
    */
@@ -167,9 +166,7 @@ export class GroupService {
       await groupRepo.addMembers(groupId, normalizedUserIds);
 
       const result = await groupRepo.findFullById(groupId);
-      if (!result) {
-        throw new AppError(ErrorCode.GROUP_NOT_FOUND);
-      }
+
       return result;
     });
 
@@ -194,11 +191,8 @@ export class GroupService {
 
       await groupRepo.removeMembers(groupId, normalizedUserIds);
 
-      const result = await groupRepo.findFullById(groupId);
-      if (!result) {
-        throw new AppError(ErrorCode.GROUP_NOT_FOUND);
-      }
-      return result;
+      return await groupRepo.findFullById(groupId);
+
     });
 
     return GroupMapper.toGroupMemberResponseDto(group);

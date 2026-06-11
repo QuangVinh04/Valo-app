@@ -25,14 +25,12 @@ export interface CreateUserInput {
   address?: string | null;
   password: string;
   mustChangePassword?: boolean;
-  groupIds: readonly string[];
 }
 
 export interface UpdateUserInput {
   fullName?: string;
   phoneNumber?: string | null;
   address?: string | null;
-  groupIds?: readonly string[];
 }
 
 export interface UserSettingsInput {
@@ -181,48 +179,40 @@ export class UserRepository {
         address: input.address,
         password: input.password,
         mustChangePassword: input.mustChangePassword ?? true,
-        userGroups: {
-          create: input.groupIds.map((groupId) => ({ groupId })),
-        },
       },
       include: userInclude,
     });
   }
 
 
-  async updateUser(id: string, input: UpdateUserInput): Promise<UserFull> {
-    const { groupIds, ...userData } = input;
-
-    return this.prisma.user.update({
+  async updateUser(id: string, input: UpdateUserInput): Promise<void> {
+    await this.prisma.user.update({
       where: { id },
-      data: {
-        ...userData, 
-
-        
-        ...(groupIds && {
-          userGroups: {
-            deleteMany: {}, 
-            create: groupIds.map((groupId) => ({ groupId })), 
-          },
-        }),
-      },
-      include: userInclude
+      data: input,
     });
   }
 
-  async updateSettings(id: string, settings: UserSettingsInput): Promise<UserFull> {
+  async assignGroups(userId: string, groupIds: readonly string[]): Promise<void> {
+    await this.prisma.userGroup.createMany({
+      data: groupIds.map((groupId) => ({
+        userId,
+        groupId,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  async updateSettings(id: string, settings: UserSettingsInput): Promise<User> {
     return this.prisma.user.update({
       where: { id },
       data: { settings: settings as unknown as Prisma.InputJsonObject },
-      include: userInclude
     });
   }
 
-  async updateProfile(id: string, input: UserProfileInput): Promise<UserFull> {
+  async updateProfile(id: string, input: UserProfileInput): Promise<User> {
     return this.prisma.user.update({
       where: { id },
       data: input,
-      include: userInclude
     });
   }
 

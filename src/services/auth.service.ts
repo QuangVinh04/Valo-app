@@ -61,9 +61,9 @@ export class AuthService {
         email,
         password,
         mustChangePassword: true,
-        groupIds: [groupDefault.id],
 
       });
+      await userRepo.assignGroups(user.id, [groupDefault.id]);
       return user;
     });
 
