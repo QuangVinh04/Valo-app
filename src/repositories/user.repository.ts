@@ -1,23 +1,95 @@
-import type { Prisma, PrismaClient, User } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../config/prisma.js';
 
 
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
-const userInclude = {
+
+const userGroupsSelect = {
   userGroups: {
-    include: {
+    select: {
       group: {
-        include: {
-          groupPermissions: true,
+        select: {
+          id: true,
+          name: true,
+          description: true,
         },
       },
     },
   },
-} satisfies Prisma.UserInclude;
+} satisfies Prisma.UserSelect;
 
-export type UserFull = Prisma.UserGetPayload<{
-  include: typeof userInclude;
+const userDetailSelect = {
+  id: true,
+  fullName: true,
+  email: true,
+  phoneNumber: true,
+  address: true,
+  mustChangePassword: true,
+  createdAt: true,
+  updatedAt: true,
+  ...userGroupsSelect,
+} satisfies Prisma.UserSelect;
+
+const userListSelect = {
+  id: true,
+  fullName: true,
+  email: true,
+  ...userGroupsSelect,
+} satisfies Prisma.UserSelect;
+
+const userAuthSelect = {
+  id: true,
+  fullName: true,
+  email: true,
+  phoneNumber: true,
+  address: true,
+  password: true,
+  refreshToken: true,
+  mustChangePassword: true,
+  settings: true,
+} satisfies Prisma.UserSelect;
+
+const userProfileSelect = {
+  id: true,
+  fullName: true,
+  phoneNumber: true,
+  address: true,
+  settings: true,
+} satisfies Prisma.UserSelect;
+
+const userCreatedSelect = {
+  id: true,
+  fullName: true,
+  email: true,
+} satisfies Prisma.UserSelect;
+
+const userIdSelect = {
+  id: true,
+} satisfies Prisma.UserSelect;
+
+export type UserDetail = Prisma.UserGetPayload<{
+  select: typeof userDetailSelect;
+}>;
+
+export type UserListItem = Prisma.UserGetPayload<{
+  select: typeof userListSelect;
+}>;
+
+export type UserAuth = Prisma.UserGetPayload<{
+  select: typeof userAuthSelect;
+}>;
+
+export type UserProfile = Prisma.UserGetPayload<{
+  select: typeof userProfileSelect;
+}>;
+
+export type UserCreated = Prisma.UserGetPayload<{
+  select: typeof userCreatedSelect;
+}>;
+
+export type UserIdentity = Prisma.UserGetPayload<{
+  select: typeof userIdSelect;
 }>;
 
 export interface CreateUserInput {
@@ -60,19 +132,38 @@ export class UserRepository {
     this.prisma = prismaClient;
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { email } });
+  async findByEmail(email: string): Promise<UserIdentity | null> {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: userIdSelect,
+    });
   }
 
-
-  async findById(id: string): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: { id } });
+  async findAuthByEmail(email: string): Promise<UserAuth | null> {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: userAuthSelect,
+    });
   }
 
-  async findFullById(id: string): Promise<UserFull | null> {
+  async findById(id: string): Promise<UserIdentity | null> {
     return this.prisma.user.findUnique({
       where: { id },
-      include: userInclude,
+      select: userIdSelect,
+    });
+  }
+
+  async findAuthById(id: string): Promise<UserAuth | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: userAuthSelect,
+    });
+  }
+
+  async findDetailById(id: string): Promise<UserDetail | null> {
+    return this.prisma.user.findUnique({
+      where: { id },
+      select: userDetailSelect,
     });
   }
 
@@ -133,12 +224,12 @@ export class UserRepository {
   }
 
 
-  async findMany(input: UserFindManyInput): Promise<UserFull[]> {
+  async findMany(input: UserFindManyInput): Promise<UserListItem[]> {
     return this.prisma.user.findMany({
       skip: input.skip,
       take: input.take,
       where: this.buildUserWhere(input),
-      include: userInclude,
+      select: userListSelect,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -167,7 +258,7 @@ export class UserRepository {
   }
 
 
-  async createUser(input: CreateUserInput): Promise<User> {
+  async createUser(input: CreateUserInput): Promise<UserCreated> {
     return this.prisma.user.create({
       data: {
         fullName: input.fullName,
@@ -177,6 +268,7 @@ export class UserRepository {
         password: input.password,
         mustChangePassword: input.mustChangePassword ?? true,
       },
+      select: userCreatedSelect,
     });
   }
 
@@ -185,6 +277,7 @@ export class UserRepository {
     await this.prisma.user.update({
       where: { id },
       data: input,
+      select: userIdSelect,
     });
   }
 
@@ -198,24 +291,27 @@ export class UserRepository {
     });
   }
 
-  async updateSettings(id: string, settings: UserSettingsInput): Promise<User> {
-    return this.prisma.user.update({
+  async updateSettings(id: string, settings: UserSettingsInput): Promise<void> {
+    await this.prisma.user.update({
       where: { id },
       data: { settings: settings as unknown as Prisma.InputJsonObject },
+      select: userIdSelect,
     });
   }
 
-  async updateProfile(id: string, input: UserProfileInput): Promise<User> {
+  async updateProfile(id: string, input: UserProfileInput): Promise<UserProfile> {
     return this.prisma.user.update({
       where: { id },
       data: input,
+      select: userProfileSelect,
     });
   }
 
 
   async deleteUser(id: string): Promise<void> {
     await this.prisma.user.delete({
-      where: { id }
+      where: { id },
+      select: userIdSelect,
     });
   }
 
@@ -225,14 +321,16 @@ export class UserRepository {
       data: {
         password: input.password,
         mustChangePassword: false
-      }
+      },
+      select: userIdSelect,
     });
   }
 
   async saveRefreshToken(input: { userId: string; refreshToken: string | null }): Promise<void> {
     await this.prisma.user.update({
       where: { id: input.userId },
-      data: { refreshToken: input.refreshToken }
+      data: { refreshToken: input.refreshToken },
+      select: userIdSelect,
     });
   }
 
@@ -242,10 +340,10 @@ export class UserRepository {
       data: {
         refreshToken: null,
       },
+      select: userIdSelect,
     });
   }
 }
 
 const prismaService = PrismaService.getInstance();
 export const userRepository = new UserRepository(prismaService.client);
-

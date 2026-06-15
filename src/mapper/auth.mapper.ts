@@ -1,16 +1,16 @@
-import { User } from '@prisma/client';
+import type { UserAuth } from '../repositories/user.repository.js';
 import { AuthResponseDto } from '../types/auth.type.js';
 import { UserSettingsDto, UserSettingsSchema } from '../types/user.type.js';
 
 
-function mapUserSettings(settings: User['settings']): UserSettingsDto {
+function mapUserSettings(settings: UserAuth['settings']): UserSettingsDto {
   const result = UserSettingsSchema.safeParse(settings);
   return result.success ? result.data : undefined;
 }
 
 export class AuthMapper {
   static toAuthResponse(
-    user: User,
+    user: UserAuth,
     accessToken: string
   ): AuthResponseDto {
     return {

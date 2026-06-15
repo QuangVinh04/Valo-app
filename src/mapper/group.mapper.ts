@@ -1,20 +1,20 @@
-import type { GroupFull, GroupListItem } from '../repositories/group.repository.js';
+import type { GroupDetail, GroupListItem, GroupMembers } from '../repositories/group.repository.js';
 import type { GroupListItemDto, GroupMemberDto, GroupResponseDto } from '../types/group.type.js';
 
 export class GroupMapper {
-    static toGroupResponseDto(group: GroupFull): GroupResponseDto {
+    static toGroupResponseDto(group: GroupDetail): GroupResponseDto {
         return {
             id: group.id,
             name: group.name,
             description: group.description,
             permissions: group.groupPermissions.map((perm) => perm.permissionKey),
-            memberCount: group.userGroups.length,
+            memberCount: group._count.userGroups,
             createdAt: group.createdAt,
             updatedAt: group.updatedAt
         };
     }
 
-    static toGroupMemberResponseDto(group: GroupFull): GroupMemberDto {
+    static toGroupMemberResponseDto(group: GroupMembers): GroupMemberDto {
         return {
             id: group.id,
             name: group.name,

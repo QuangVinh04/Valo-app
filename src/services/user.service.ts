@@ -1,5 +1,4 @@
 import { ErrorCode } from '../constants/error-code.js';
-import { withTransaction } from '../database/transaction.js';
 import { UserMapper } from '../mapper/user.mapper.js';
 import { GroupRepository, groupRepository } from '../repositories/group.repository.js';
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
@@ -13,7 +12,7 @@ import {
   type PaginatedResult,
   type PaginationOptions
 } from '../utils/pagination.util.js';
-import { AuthService } from './auth.service.js';
+
 
 export interface UserListFilters {
   search?: string;
@@ -62,7 +61,7 @@ export class UserService {
    * Lấy thông tin một người dùng theo ID; báo lỗi nếu không tìm thấy.
    */
   async getUserById(id: string): Promise<UserResponseDto> {
-    const user = await this.userRepo.findFullById(id);
+    const user = await this.userRepo.findDetailById(id);
 
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
@@ -84,18 +83,13 @@ export class UserService {
 
     const temporaryPassword = generateTemporaryPassword();
 
-    const user = await withTransaction(async (tx) => {
-      const userRepo = new UserRepository(tx);
-
-      const result = await userRepo.createUser({
-        fullName: payload.fullName.trim(),
-        email,
-        phoneNumber: payload.phoneNumber?.trim() || null,
-        address: payload.address?.trim() || null,
-        password: await hashString(temporaryPassword),
-        mustChangePassword: true,
-      });
-      return result;
+    const user = await this.userRepo.createUser({
+      fullName: payload.fullName.trim(),
+      email,
+      phoneNumber: payload.phoneNumber?.trim() || null,
+      address: payload.address?.trim() || null,
+      password: await hashString(temporaryPassword),
+      mustChangePassword: true,
     });
 
     await this.emailService.sendTemporaryPasswordEmail({
@@ -116,14 +110,10 @@ export class UserService {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
 
-    await withTransaction(async (tx) => {
-      const userRepo = new UserRepository(tx);
-
-      await userRepo.updateUser(id, {
-        fullName: payload.fullName?.trim(),
-        ...(payload.phoneNumber !== undefined ? { phoneNumber: payload.phoneNumber.trim() || null } : {}),
-        ...(payload.address !== undefined ? { address: payload.address.trim() || null } : {}),
-      });
+    await this.userRepo.updateUser(id, {
+      fullName: payload.fullName?.trim(),
+      ...(payload.phoneNumber !== undefined ? { phoneNumber: payload.phoneNumber.trim() || null } : {}),
+      ...(payload.address !== undefined ? { address: payload.address.trim() || null } : {}),
     });
 
     return true;
@@ -144,7 +134,7 @@ export class UserService {
 
     return true;
   }
-  
+
 
   /**
    * Cập nhật thiết lập cá nhân của người dùng hiện tại như giao diện và ngôn ngữ.
@@ -210,7 +200,7 @@ export class UserService {
 
     return ids;
   }
-  
+
 }
 
 

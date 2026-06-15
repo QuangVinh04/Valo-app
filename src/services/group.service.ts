@@ -1,4 +1,4 @@
-import { groupRepository, GroupRepository } from '../repositories/group.repository.js';
+import { GroupRepository, groupRepository } from '../repositories/group.repository.js';
 import { CreatedGroupDto, GroupMemberDto, GroupRequestDto, GroupResponseDto, UpdateGroupRequestDto } from '../types/group.type.js';
 import { withTransaction } from '../database/transaction.js';
 import { GroupMapper } from '../mapper/group.mapper.js';
@@ -51,7 +51,7 @@ export class GroupService {
    * Lấy chi tiết một nhóm kèm quyền; báo lỗi nếu nhóm không tồn tại.
    */
   async getGroupById(id: string): Promise<GroupResponseDto> {
-    const group = await this.groupRepository.findFullById(id);
+    const group = await this.groupRepository.findDetailById(id);
     if (!group) {
       throw new AppError(ErrorCode.GROUP_NOT_FOUND);
     }
@@ -64,19 +64,24 @@ export class GroupService {
    */
   async createGroup(payload: GroupRequestDto): Promise<CreatedGroupDto> {
     const name = payload.name.trim();
-    const existingGroup = await this.groupRepository.findByName(name);
-    if (existingGroup) {
-      throw new AppError(ErrorCode.GROUP_NAME_ALREADY_IN_USE);
-    }
 
+    // Bọc toàn bộ quá trình Đọc và Ghi vào trong transaction
     const result = await withTransaction(async (tx) => {
+
       const groupRepo = new GroupRepository(tx);
 
-      return groupRepo.createGroup({
+      const existingGroup = await groupRepo.findByName(name);
+      if (existingGroup) {
+        throw new AppError(ErrorCode.GROUP_NAME_ALREADY_IN_USE);
+      }
+      
+      const newGroup = await groupRepo.createGroup({
         name,
         description: payload.description?.trim(),
         permissionKeys: this.normalizePermissionKeys(payload.permissions)
       });
+
+      return newGroup;
     });
 
     return { id: result.id };
@@ -135,15 +140,15 @@ export class GroupService {
 
 
 
-   /**
-   * Lay danh sach thanh vien trong nhom
-   */
+  /**
+  * Lay danh sach thanh vien trong nhom
+  */
   async getGroupMembers(groupId: string): Promise<GroupMemberDto> {
-    const group = await this.groupRepository.findFullById(groupId);
+    const group = await this.groupRepository.findMembersById(groupId);
     if (!group) {
       throw new AppError(ErrorCode.GROUP_NOT_FOUND);
     }
-    
+
     return GroupMapper.toGroupMemberResponseDto(group);
   }
 
@@ -165,7 +170,10 @@ export class GroupService {
 
       await groupRepo.addMembers(groupId, normalizedUserIds);
 
-      const result = await groupRepo.findFullById(groupId);
+      const result = await groupRepo.findMembersById(groupId);
+      if (!result) {
+        throw new AppError(ErrorCode.GROUP_NOT_FOUND);
+      }
 
       return result;
     });
@@ -191,7 +199,12 @@ export class GroupService {
 
       await groupRepo.removeMembers(groupId, normalizedUserIds);
 
-      return await groupRepo.findFullById(groupId);
+      const result = await groupRepo.findMembersById(groupId);
+      if (!result) {
+        throw new AppError(ErrorCode.GROUP_NOT_FOUND);
+      }
+
+      return result;
 
     });
 

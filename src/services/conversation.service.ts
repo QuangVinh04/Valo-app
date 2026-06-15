@@ -3,7 +3,6 @@ import { CreateConversationRequestDto, UpdateConversationRequestDto, Conversatio
 import { ConversationMapper } from '../mapper/conversation.mapper.js';
 import AppError from '../utils/app-error.js';
 import { ErrorCode } from '../constants/error-code.js';
-import { withTransaction } from '../database/transaction.js';
 import { buildCursorPaginatedResult, CursorPaginatedResult, CursorPaginationOptions } from '../utils/pagination.util.js';
 
 export class ConversationService {
@@ -21,15 +20,11 @@ export class ConversationService {
      */
     async createNewConversation(userId: string, 
         payload: CreateConversationRequestDto): Promise<ConversationDetailResponseDto> {
-        const conversation = await withTransaction(async (tx) => {
-            const conversationRepo = new ConversationRepository(tx);
-
-            return conversationRepo.create({
+        const conversation = await this.conversationRepo.create({
                 title: payload.title,
                 modelName: payload.modelName,
                 userId: userId,
             });
-        });
 
         return ConversationMapper.toDetailDto(conversation);
     }
@@ -54,19 +49,13 @@ export class ConversationService {
         id: string, 
         updates: UpdateConversationRequestDto): Promise<ConversationUpdateResponseDto> {
 
-        const conversation = await this.conversationRepo.getByIdAndUserId(id, userId);
-        if (!conversation) {
+        const exists = await this.conversationRepo.existsByIdAndUserId(id, userId);
+        if (!exists) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }
         
-        const updated = await withTransaction(async (tx) => {
-            const conversationRepo = new ConversationRepository(tx);
-            const result = await conversationRepo.update(id, updates);
-            if (!result) {
-                throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
-            }
-            return result;
-        });
+        const updated = await this.conversationRepo.update(id, updates);
+            
         return ConversationMapper.toUpdateDto(updated);
 
     }
@@ -75,8 +64,8 @@ export class ConversationService {
      * Xóa một cuộc hội thoại sau khi kiểm tra nó tồn tại.
      */
     async deleteConversation(userId: string, id: string): Promise<boolean> {
-        const conversation = await this.conversationRepo.getByIdAndUserId(id, userId);
-        if (!conversation) {
+        const exists = await this.conversationRepo.existsByIdAndUserId(id, userId);
+        if (!exists) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }
         

@@ -84,7 +84,7 @@ export class AuthService {
     refreshToken: string;
   }> {
     const email = payload.email.trim().toLowerCase();
-    const user = await this.userRepository.findByEmail(email);
+    const user = await this.userRepository.findAuthByEmail(email);
 
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
@@ -127,7 +127,7 @@ export class AuthService {
     }
     const decoded = verifyRefreshToken(token);
 
-    const user = await this.userRepository.findById(decoded.userId);
+    const user = await this.userRepository.findAuthById(decoded.userId);
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
@@ -165,7 +165,7 @@ export class AuthService {
    * Đổi mật khẩu, kiểm tra mật khẩu hiện tại, xác nhận mật khẩu mới và thu hồi refresh token.
    */
   async changePassword(userId: string, payload: ChangePasswordRequestDto): Promise<void> {
-    const user = await this.userRepository.findById(userId);
+    const user = await this.userRepository.findAuthById(userId);
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
@@ -187,13 +187,9 @@ export class AuthService {
 
     const newHashedPassword = await hashString(payload.newPassword);
 
-    await withTransaction(async (tx) => {
-      const userRepo = new UserRepository(tx);
-
-      await userRepo.updatePassword({
-        userId,
-        password: newHashedPassword
-      });
+    await this.userRepository.updatePassword({
+      userId,
+      password: newHashedPassword
     });
   }
 

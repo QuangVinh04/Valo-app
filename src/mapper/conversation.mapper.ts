@@ -1,10 +1,9 @@
-import { ConversationFull } from "../repositories/conversation.repository.js";
+import { ConversationDetail, ConversationSummary, ConversationUpdate } from "../repositories/conversation.repository.js";
 import { ConversationDetailResponseDto, ConversationSummaryResponseDto, ConversationUpdateResponseDto} from "../types/conversation.type.js";
-import { Conversation } from "@prisma/client";
 
 export class ConversationMapper {
 
- static toDetailDto(conversation: ConversationFull): ConversationDetailResponseDto {
+ static toDetailDto(conversation: ConversationDetail): ConversationDetailResponseDto {
     return {
       id: conversation.id,
       title: conversation.title,
@@ -20,7 +19,7 @@ export class ConversationMapper {
   }
 
 
-  static toUpdateDto(conversation: Conversation): ConversationUpdateResponseDto {
+  static toUpdateDto(conversation: ConversationUpdate): ConversationUpdateResponseDto {
     return {
       id: conversation.id,
       title: conversation.title,
@@ -29,7 +28,7 @@ export class ConversationMapper {
     };
   }
 
-  static toSummaryDto(conversation: Conversation): ConversationSummaryResponseDto {
+  static toSummaryDto(conversation: ConversationSummary): ConversationSummaryResponseDto {
     return {
       id: conversation.id,
       title: conversation.title,

@@ -3,10 +3,29 @@ import { PrismaService } from '../config/prisma.js';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
-const groupInclude = {
-  groupPermissions: true,
+const groupDetailSelect = {
+  id: true,
+  name: true,
+  description: true,
+  createdAt: true,
+  updatedAt: true,
+  groupPermissions: {
+    select: {
+      permissionKey: true,
+    },
+  },
+  _count: {
+    select: {
+      userGroups: true,
+    },
+  },
+} satisfies Prisma.GroupSelect;
+
+const groupMembersSelect = {
+  id: true,
+  name: true,
   userGroups: {
-    include: {
+    select: {
       user: {
         select: {
           id: true,
@@ -16,27 +35,38 @@ const groupInclude = {
       },
     },
   },
-} satisfies Prisma.GroupInclude;
+} satisfies Prisma.GroupSelect;
 
-
-
-const groupListInclude = {
+const groupListSelect = {
+  id: true,
+  name: true,
+  description: true,
   _count: {
     select: {
-      userGroups: true, 
+      userGroups: true,
     },
   },
-} satisfies Prisma.GroupInclude;
+} satisfies Prisma.GroupSelect;
 
-export type GroupFull = Prisma.GroupGetPayload<{
-  include: typeof groupInclude;
+const groupIdSelect = {
+  id: true,
+} satisfies Prisma.GroupSelect;
+
+export type GroupDetail = Prisma.GroupGetPayload<{
+  select: typeof groupDetailSelect;
+}>;
+
+export type GroupMembers = Prisma.GroupGetPayload<{
+  select: typeof groupMembersSelect;
 }>;
 
 export type GroupListItem = Prisma.GroupGetPayload<{
-  include: typeof groupListInclude;
+  select: typeof groupListSelect;
 }>;
 
-
+export type GroupIdentity = Prisma.GroupGetPayload<{
+  select: typeof groupIdSelect;
+}>;
 
 export interface CreateGroupInput {
   name: string;
@@ -58,39 +88,49 @@ export class GroupRepository {
     this.prisma = prismaClient;
   }
 
-  async findById(id: string) {
+  async findById(id: string): Promise<GroupIdentity | null> {
     return this.prisma.group.findUnique({
       where: { id },
+      select: groupIdSelect,
     });
   }
 
-  async findFullById(id: string) {
+  async findDetailById(id: string): Promise<GroupDetail | null> {
     return this.prisma.group.findUnique({
       where: { id },
-      include: groupInclude,
+      select: groupDetailSelect,
     });
   }
 
-  async findByName(name: string) {
+  async findMembersById(id: string): Promise<GroupMembers | null> {
+    return this.prisma.group.findUnique({
+      where: { id },
+      select: groupMembersSelect,
+    });
+  }
+
+  async findByName(name: string): Promise<GroupIdentity | null> {
     return this.prisma.group.findFirst({
       where: { name },
+      select: groupIdSelect,
     });
   }
 
-  async findByNameExceptId(name: string, id: string) {
+  async findByNameExceptId(name: string, id: string): Promise<GroupIdentity | null> {
     return this.prisma.group.findFirst({
       where: {
         name,
         NOT: { id },
       },
+      select: groupIdSelect,
     });
   }
 
-  async findMany(input: { skip: number; take: number }) {
+  async findMany(input: { skip: number; take: number }): Promise<GroupListItem[]> {
     return this.prisma.group.findMany({
       skip: input.skip,
       take: input.take,
-      include: groupListInclude,
+      select: groupListSelect,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -105,7 +145,7 @@ export class GroupRepository {
     });
   }
 
-  async createGroup(input: CreateGroupInput) {
+  async createGroup(input: CreateGroupInput): Promise<GroupIdentity> {
     return this.prisma.group.create({
       data: {
         name: input.name,
@@ -116,22 +156,22 @@ export class GroupRepository {
           })),
         },
       },
+      select: groupIdSelect,
     });
   }
 
   async updateGroup(id: string, input: {
     name?: string;
     description?: string;
-  }) {
-    return this.prisma.group.update({
+  }): Promise<void> {
+    await this.prisma.group.update({
       where: { id },
       data: input,
-      include: groupInclude,
     });
   }
 
-  async deleteGroup(id: string) {
-    return this.prisma.group.delete({
+  async deleteGroup(id: string): Promise<void> {
+    await this.prisma.group.delete({
       where: { id },
     });
   }

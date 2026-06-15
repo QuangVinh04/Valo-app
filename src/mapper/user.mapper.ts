@@ -1,9 +1,8 @@
-import { User } from '@prisma/client';
-import type { UserFull } from '../repositories/user.repository.js';
+import type { UserDetail, UserListItem, UserProfile } from '../repositories/user.repository.js';
 import type { UserResponseDto, UserListItemDto, UserProfileResponseDto, UserSettingsDto } from '../types/user.type.js';
 
 export class UserMapper {
-  static toUserResponseDto(user: UserFull): UserResponseDto {
+  static toUserResponseDto(user: UserDetail): UserResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
@@ -21,7 +20,7 @@ export class UserMapper {
     };
   }
 
-  static toUserProfileResponseDto(user: User): UserProfileResponseDto {
+  static toUserProfileResponseDto(user: UserProfile): UserProfileResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
@@ -31,7 +30,7 @@ export class UserMapper {
     };
   }
 
-  static toUserListItemDto(user: UserFull): UserListItemDto {
+  static toUserListItemDto(user: UserListItem): UserListItemDto {
     return {
       id: user.id,
       fullName: user.fullName,
