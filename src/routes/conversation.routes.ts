@@ -1,20 +1,12 @@
 import { Router } from 'express';
-import { PrismaService } from '../config/prisma.js';
+
+import { conversationController } from '../controllers/conversation.controller.js';
 import { PermissionConstant } from '../constants/permission.constant.js';
 import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
-import { ConversationRepository } from '../repositories/conversation.repository.js';
-import { ConversationController } from '../controllers/conversation.controller.js';
-import { ConversationService } from '../services/conversation.service.js';
-import { UserRepository } from '../repositories/user.repository.js';
 import { createConversationSchema, updateConversationSchema } from '../types/conversation.type.js';
 
 const router = Router();
-const prismaService = PrismaService.getInstance();
-const conversationRepository = new ConversationRepository(prismaService.client);
-const userRepository = new UserRepository(prismaService.client);
-const conversationService = new ConversationService(conversationRepository, userRepository);
-const conversationController = new ConversationController(conversationService);
 
 router.get(
   '/',

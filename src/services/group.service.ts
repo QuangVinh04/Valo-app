@@ -1,10 +1,10 @@
-import { GroupRepository } from '../repositories/group.repository.js';
+import { groupRepository, GroupRepository } from '../repositories/group.repository.js';
 import { CreatedGroupDto, GroupMemberDto, GroupRequestDto, GroupResponseDto, UpdateGroupRequestDto } from '../types/group.type.js';
 import { withTransaction } from '../database/transaction.js';
 import { GroupMapper } from '../mapper/group.mapper.js';
 import AppError from '../utils/app-error.js';
 import { ErrorCode } from '../constants/error-code.js';
-import { UserRepository } from '../repositories/user.repository.js';
+import { userRepository, UserRepository } from '../repositories/user.repository.js';
 import {
   buildPaginatedResult,
   type PaginationOptions
@@ -230,3 +230,5 @@ export class GroupService {
   }
 
 }
+
+export const groupService = new GroupService(groupRepository, userRepository);

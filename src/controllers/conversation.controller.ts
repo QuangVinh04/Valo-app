@@ -1,5 +1,5 @@
 import { NextFunction, Response } from 'express';
-import { ConversationService } from '../services/conversation.service.js';
+import { conversationService, ConversationService } from '../services/conversation.service.js';
 import catchAsync from '../utils/catch-async.js';
 import { ApiResponse, sendSuccess } from '../utils/api-response.js';
 import { CreateConversationRequestDto, UpdateConversationRequestDto, ConversationDetailResponseDto, ConversationUpdateResponseDto, ConversationSummaryResponseDto } from '../types/conversation.type.js';
@@ -103,3 +103,5 @@ export class ConversationController {
         result.meta);
   });
 }
+
+export const conversationController = new ConversationController(conversationService);

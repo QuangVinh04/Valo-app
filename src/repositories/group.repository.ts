@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
+import { PrismaService } from '../config/prisma.js';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -186,3 +187,7 @@ export class GroupRepository {
     });
   }
 }
+
+
+const prismaService = PrismaService.getInstance();
+export const groupRepository = new GroupRepository(prismaService.client);

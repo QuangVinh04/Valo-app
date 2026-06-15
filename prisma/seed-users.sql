@@ -6,7 +6,7 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 WITH ensured_group AS (
-  INSERT INTO "group" ("id", "name", "description", "created_at", "updated_at")
+  INSERT INTO "group" ("id", "name", "description", "createdAt", "updatedAt")
   VALUES (
     gen_random_uuid(),
     'user',
@@ -17,7 +17,7 @@ WITH ensured_group AS (
   ON CONFLICT ("name") DO UPDATE
   SET
     "description" = COALESCE("group"."description", EXCLUDED."description"),
-    "updated_at" = CURRENT_TIMESTAMP
+    "updatedAt" = CURRENT_TIMESTAMP
   RETURNING "id"
 ),
 target_group AS (
@@ -26,7 +26,7 @@ target_group AS (
   SELECT "id" FROM "group" WHERE "name" = 'user'
   LIMIT 1
 ),
-seed_users ("full_name", "email", "phone_number", "address") AS (
+seed_users ("fullName", "email", "phoneNumber", "address") AS (
   VALUES
     ('Evelyn Loomis', 'e.loomis@neuralhub.ai', '+1 415 010 1001', 'San Francisco, CA'),
     ('Marcus Chen', 'm.chen@agentflow.io', '+1 415 010 1002', 'Seattle, WA'),
@@ -37,21 +37,21 @@ seed_users ("full_name", "email", "phone_number", "address") AS (
 upserted_users AS (
   INSERT INTO "users" (
     "id",
-    "full_name",
+    "fullName",
     "email",
-    "phone_number",
+    "phoneNumber",
     "address",
     "password",
-    "must_change_password",
+    "mustChangePassword",
     "settings",
-    "created_at",
-    "updated_at"
+    "createdAt",
+    "updatedAt"
   )
   SELECT
     gen_random_uuid(),
-    seed_users."full_name",
+    seed_users."fullName",
     seed_users."email",
-    seed_users."phone_number",
+    seed_users."phoneNumber",
     seed_users."address",
     '$2b$10$vNmgNT3MthG5d9SEMDSqVOAEZCVaGcYiYdSnZOXD8HFqxi1w2G5Ry',
     false,
@@ -61,13 +61,13 @@ upserted_users AS (
   FROM seed_users
   ON CONFLICT ("email") DO UPDATE
   SET
-    "full_name" = EXCLUDED."full_name",
-    "phone_number" = EXCLUDED."phone_number",
+    "fullName" = EXCLUDED."fullName",
+    "phoneNumber" = EXCLUDED."phoneNumber",
     "address" = EXCLUDED."address",
-    "updated_at" = CURRENT_TIMESTAMP
+    "updatedAt" = CURRENT_TIMESTAMP
   RETURNING "id", "email"
 )
-INSERT INTO "user_group" ("id", "user_id", "group_id", "assigned_at")
+INSERT INTO "user_group" ("id", "userId", "groupId", "assignedAt")
 SELECT
   gen_random_uuid(),
   upserted_users."id",
@@ -75,4 +75,4 @@ SELECT
   CURRENT_TIMESTAMP
 FROM upserted_users
 CROSS JOIN target_group
-ON CONFLICT ("user_id", "group_id") DO NOTHING;
+ON CONFLICT ("userId", "groupId") DO NOTHING;

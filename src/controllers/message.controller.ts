@@ -1,11 +1,12 @@
 import { NextFunction, Response } from 'express';
 import AiService from '../services/ai.service.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
-import MessageService from '../services/message.service.js';
+import { MessageService, messageService } from '../services/message.service.js';
 import { SendMessageRequestDto } from '../types/message.type.js';
 import env from '../config/env.js';
 import logger from '../utils/logger.util.js';
 import { AiModelKey } from '../constants/ai-model.constant.js';
+
 
 export class MessageController {
   private readonly messageService: MessageService;
@@ -122,4 +123,4 @@ export class MessageController {
   }
 }
 
-export default MessageController;
+export const messageController = new MessageController(messageService, new AiService());

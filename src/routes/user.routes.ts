@@ -1,22 +1,13 @@
 import { Router } from 'express';
-import { PrismaService } from '../config/prisma.js';
+
+import { userController } from '../controllers/user.controller.js';
 import { PermissionConstant } from '../constants/permission.constant.js';
-import { UserController } from '../controllers/user.controller.js';
 import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
-import { GroupRepository } from '../repositories/group.repository.js';
-import { UserRepository } from '../repositories/user.repository.js';
-import { UserService } from '../services/user.service.js';
 import { assignUserGroupsSchema, createUserSchema, updateUserProfileSchema, updateUserSchema, updateUserSettingsSchema } from '../types/user.type.js';
-import EmailService from '../services/email.service.js';
+
 
 const router = Router();
-const prismaService = PrismaService.getInstance();
-const userRepository = new UserRepository(prismaService.client);
-const groupRepository = new GroupRepository(prismaService.client);
-const emailService = new EmailService();
-const userService = new UserService(userRepository, groupRepository, emailService);
-const userController = new UserController(userService);
 
 router.get(
   '/',

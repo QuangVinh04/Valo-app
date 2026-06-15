@@ -9,18 +9,18 @@ datasource db {
 
 model User {
   id                 String         @id @default(uuid()) @db.Uuid
-  fullName           String         @map("full_name")
+  fullName           String
   email              String         @unique
-  phoneNumber        String?        @map("phone_number")
+  phoneNumber        String?
   address            String?
-  password           String         @map("password")
+  password           String
   conversations      Conversation[]
   userGroups         UserGroup[]
-  createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")
-  refreshToken       String?        @map("refresh_token")
-  mustChangePassword Boolean        @default(true) @map("must_change_password")
-  settings           Json           @default("{\"theme\":\"dark\",\"language\":\"vi\"}")
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  refreshToken       String?
+  mustChangePassword Boolean        @default(true)
+  settings           Json?
 
   @@map("users")
 }
@@ -29,15 +29,13 @@ model Conversation {
   id        String    @id @default(uuid()) @db.Uuid
   userId    String    @db.Uuid
   title     String
-  modelName  String?   @map("model_name")
+  modelName  String?
   messages  Message[]
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete : Cascade)
 
-  @@index([userId])
-  @@index([userId, updatedAt])
   @@map("conversations")
 }
 
@@ -50,15 +48,13 @@ enum Role {
 model Message {
   id             String   @id @default(uuid()) @db.Uuid
   conversationId String   @db.Uuid
-  senderType     Role     @default(user) @map("sender_type")
-  modelName       String?  @map("model_name")
+  senderType     Role     @default(user)
+  modelName       String?
   content        String   @db.Text
-  createdAt      DateTime @default(now()) @map("created_at")
+  createdAt      DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  @@index([conversationId])
-  @@index([conversationId, createdAt])
   @@map("messages")
 }
 
@@ -66,8 +62,8 @@ model Group {
   id               String            @id @default(uuid()) @db.Uuid
   name             String            @unique
   description      String?
-  createdAt        DateTime          @default(now()) @map("created_at")
-  updatedAt        DateTime          @updatedAt @map("updated_at")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
   userGroups       UserGroup[]
   groupPermissions GroupPermission[]
 
@@ -76,27 +72,24 @@ model Group {
 
 model UserGroup {
   id         String   @id @default(uuid()) @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  groupId    String   @map("group_id") @db.Uuid
-  assignedAt DateTime @default(now()) @map("assigned_at")
+  userId     String   @db.Uuid
+  groupId    String   @db.Uuid
+  assignedAt DateTime @default(now())
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
-  @@index([userId])
-  @@index([groupId])
   @@map("user_group")
 }
 
 model GroupPermission {
   id            String @id @default(uuid()) @db.Uuid
-  groupId       String @map("group_id") @db.Uuid
-  permissionKey String @map("permission_key")
+  groupId       String @db.Uuid
+  permissionKey String
 
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([groupId, permissionKey])
-  @@index([groupId])
   @@map("group_permission")
 }

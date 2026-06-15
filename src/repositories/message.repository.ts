@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient, Role } from '@prisma/client';
+import { PrismaService } from '../config/prisma.js';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -38,4 +39,6 @@ export class MessageRepository {
   }
 }
 
-export default MessageRepository;
+
+const prismaService = PrismaService.getInstance();
+export const messageRepository = new MessageRepository(prismaService.client);

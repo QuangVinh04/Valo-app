@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { GroupService } from '../services/group.service.js';
+import { groupService, GroupService } from '../services/group.service.js';
 import type {
   GroupMembersRequestDto,
   GroupRequestDto,
@@ -107,4 +107,4 @@ export class GroupController {
   });
 }
 
-export default GroupController;
+export const groupController = new GroupController(groupService);

@@ -1,4 +1,6 @@
 import type { Prisma, PrismaClient, User } from '@prisma/client';
+import { PrismaService } from '../config/prisma.js';
+
 
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
@@ -244,4 +246,6 @@ export class UserRepository {
   }
 }
 
-export default UserRepository;
+const prismaService = PrismaService.getInstance();
+export const userRepository = new UserRepository(prismaService.client);
+

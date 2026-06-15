@@ -5,7 +5,7 @@ import type {
   LoginRequestDto,
   RegisterRequestDto,
 } from '../types/auth.type.js';
-import { AuthService } from '../services/auth.service.js';
+import { authService, AuthService } from '../services/auth.service.js';
 import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
 import { StatusCodes } from 'http-status-codes';
 import catchAsync from '../utils/catch-async.js';
@@ -124,4 +124,5 @@ export class AuthController {
     return sendSuccess(res, result, 'Permissions found', StatusCodes.OK);
   });
 }
-export default AuthController;
+
+export const authController = new AuthController(authService);

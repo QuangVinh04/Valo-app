@@ -1,8 +1,8 @@
 import { ErrorCode } from '../constants/error-code.js';
 import { withTransaction } from '../database/transaction.js';
 import { UserMapper } from '../mapper/user.mapper.js';
-import { GroupRepository } from '../repositories/group.repository.js';
-import { UserRepository } from '../repositories/user.repository.js';
+import { GroupRepository, groupRepository } from '../repositories/group.repository.js';
+import { userRepository, UserRepository } from '../repositories/user.repository.js';
 import type { AssignUserGroupsRequestDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserProfileDto, UserProfileResponseDto, UserResponseDto, UserSettingsDto } from '../types/user.type.js';
 import AppError from '../utils/app-error.js';
 import { hashString } from '../utils/auth.util.js';
@@ -13,6 +13,7 @@ import {
   type PaginatedResult,
   type PaginationOptions
 } from '../utils/pagination.util.js';
+import { AuthService } from './auth.service.js';
 
 export interface UserListFilters {
   search?: string;
@@ -211,4 +212,6 @@ export class UserService {
   }
   
 }
-export default UserService;
+
+
+export const userService = new UserService(userRepository, groupRepository, new EmailService());

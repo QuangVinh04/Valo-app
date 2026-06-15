@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
-import { GroupRepository } from '../../repositories/group.repository.js';
-import UserRepository from '../../repositories/user.repository.js';
+import { groupRepository } from '../../repositories/group.repository.js';
+import { userRepository } from '../../repositories/user.repository.js';
 import { hashString } from '../../utils/auth.util.js';
 import logger from '../../utils/logger.util.js';
 
@@ -9,8 +9,7 @@ const DEFAULT_ADMIN_FULL_NAME = process.env.ADMIN_FULL_NAME || 'System Administr
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123456';
 
 export async function seedAdmin(prisma: PrismaClient): Promise<void> {
-  const userRepository = new UserRepository(prisma);
-  const groupRepository = new GroupRepository(prisma);
+
 
   const adminGroup = await groupRepository.findByName('admin');
   if (!adminGroup) {

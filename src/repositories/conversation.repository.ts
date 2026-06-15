@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma, Conversation } from "@prisma/client";
+import { PrismaService } from "../config/prisma.js";
 
 
 
@@ -132,6 +133,8 @@ export class ConversationRepository {
       ],
     });
   }
-
-
 }
+
+
+const prismaService = PrismaService.getInstance();
+export const conversationRepository = new ConversationRepository(prismaService.client);

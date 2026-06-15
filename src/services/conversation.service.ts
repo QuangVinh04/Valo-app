@@ -1,5 +1,4 @@
-import { ConversationRepository } from '../repositories/conversation.repository.js';
-import UserRepository from '../repositories/user.repository.js';
+import { conversationRepository, ConversationRepository } from '../repositories/conversation.repository.js';
 import { CreateConversationRequestDto, UpdateConversationRequestDto, ConversationDetailResponseDto, ConversationUpdateResponseDto, ConversationSummaryResponseDto}from '../types/conversation.type.js';
 import { ConversationMapper } from '../mapper/conversation.mapper.js';
 import AppError from '../utils/app-error.js';
@@ -114,3 +113,5 @@ export class ConversationService {
         );
     }
 }
+
+export const conversationService = new ConversationService(conversationRepository);

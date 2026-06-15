@@ -6,8 +6,8 @@ import {
   RefreshTokenRequestDto,
   RegisterRequestDto,
 } from '../types/auth.type.js';
-import { UserRepository } from '../repositories/user.repository.js';
-import { GroupRepository } from '../repositories/group.repository.js';
+import { userRepository, UserRepository } from '../repositories/user.repository.js';
+import { groupRepository, GroupRepository } from '../repositories/group.repository.js';
 import AppError from '../utils/app-error.js';
 import { generateAccessToken, verifyRefreshToken, generateRefreshToken } from '../utils/jwt.util.js';
 import { AuthMapper } from '../mapper/auth.mapper.js';
@@ -194,8 +194,6 @@ export class AuthService {
         userId,
         password: newHashedPassword
       });
-
-      await userRepo.deleteRefreshTokenByUserId(userId);
     });
   }
 
@@ -217,4 +215,4 @@ export class AuthService {
   }
 }
 
-export default AuthService;
+export const authService = new AuthService(userRepository, groupRepository);

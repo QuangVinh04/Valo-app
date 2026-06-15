@@ -1,6 +1,6 @@
-import { ConversationRepository } from '../repositories/conversation.repository.js';
-import MessageRepository from '../repositories/message.repository.js';
-import UserRepository from '../repositories/user.repository.js';
+import { ConversationRepository, conversationRepository } from '../repositories/conversation.repository.js';
+import { MessageRepository, messageRepository } from '../repositories/message.repository.js';
+import { UserRepository, userRepository } from '../repositories/user.repository.js';
 import { ErrorCode } from '../constants/error-code.js';
 import { MessageMapper } from '../mapper/message.mapper.js';
 import { withTransaction } from '../database/transaction.js';
@@ -100,4 +100,8 @@ export class MessageService {
   }
 }
 
-export default MessageService;
+export const messageService = new MessageService(
+  conversationRepository,
+  userRepository,
+  messageRepository
+);

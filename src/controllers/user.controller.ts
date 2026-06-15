@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
-import { UserService } from '../services/user.service.js';
+import { UserService, userService } from '../services/user.service.js';
 import type { AssignUserGroupsRequestDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserProfileDto, UserProfileResponseDto, UserResponseDto, UserSettingsDto } from '../types/user.type.js';
 import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
 import catchAsync from '../utils/catch-async.js';
@@ -135,4 +135,4 @@ export class UserController {
 
 }
 
-export default UserController;
+export const userController = new UserController(userService);
