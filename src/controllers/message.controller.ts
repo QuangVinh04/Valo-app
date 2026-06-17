@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { NextFunction, Response } from 'express';
 import AiService from '../services/ai.service.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
@@ -6,14 +7,18 @@ import { SendMessageRequestDto } from '../types/message.type.js';
 import env from '../config/env.js';
 import logger from '../utils/logger.util.js';
 import { AiModelKey } from '../constants/ai-model.constant.js';
+import { ConversationService, conversationService } from '../services/conversation.service.js';
+import type { UploadedAiFile } from '../services/ai/ai-provider.js';
 
 
 export class MessageController {
   private readonly messageService: MessageService;
+  private readonly conversationService: ConversationService;
   private readonly aiService: AiService;
 
-  constructor(messageService: MessageService, aiService: AiService) {
+  constructor(messageService: MessageService, conversationService: ConversationService, aiService: AiService) {
     this.messageService = messageService;
+    this.conversationService = conversationService;
     this.aiService = aiService;
   }
 
@@ -28,6 +33,8 @@ export class MessageController {
     const abortController = new AbortController();
 
     const chunks: string[] = [];  // Lưu trữ các chunk tạm thời để có thể lưu vào DB sau khi stream kết thúc
+    let chatId: string | undefined;
+    let sessionId: string | undefined;
 
     const handleClientClose = () => {
       abortController.abort();
@@ -38,10 +45,10 @@ export class MessageController {
       res.on('close', handleClientClose);
 
       const prepared = await this.messageService.prepareMessageStream(
-          userId,
-          payload,
-          conversationId
-        )
+        userId,
+        payload,
+        conversationId
+      )
 
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
@@ -55,17 +62,29 @@ export class MessageController {
       })}\n\n`);
 
       for await (const chunk of this.aiService.stream(
-        prepared.context,
+        prepared.userMessage.content,
         payload.modelName as AiModelKey,
-        abortController.signal
+        {
+          conversationId: prepared.conversationId,
+          chatId: prepared.chatId,
+          sessionId: prepared.sessionId,
+          files: (req as AuthenticatedRequest & { files?: UploadedAiFile[] }).files,
+          signal: abortController.signal
+        }
       )) {
         // Nếu client đã hủy giữa chừng, dừng vòng lặp ngay
         if (abortController.signal.aborted) break;
 
-        chunks.push(chunk);
+        if (chunk.content !== undefined && chunk.content !== '') {
+          chunks.push(chunk.content);
 
-        res.write(`event: token\n`);
-        res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+          res.write(`event: token\n`);
+          res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`); // [INDEX]
+        }
+
+        if (chunk.chatId) chatId = chunk.chatId;
+        if (chunk.sessionId) sessionId = chunk.sessionId;
+
       }
 
 
@@ -78,22 +97,37 @@ export class MessageController {
         res.end();
         return;
       }
-      
+
       const finalContent = chunks.join('');
 
-      const assistantMessage = await this.messageService.saveAssistantMessage(
-        prepared.conversationId,
-        finalContent,
-        payload.modelName
-      );
+      if (chatId && sessionId) {
+        await this.conversationService.updateConversation(
+          userId,
+          prepared.conversationId,
+          {
+            chatId,
+            sessionId,
+          }
+        );
+      }
+
+      const assistantMessage = {
+        id: randomUUID(),
+        content: finalContent,
+        senderType: 'assistant',
+        modelName: payload.modelName,
+        createdAt: new Date(),
+      };
 
       res.write(`event: done\n`);
       res.write(`data: ${JSON.stringify({
         conversationId: prepared.conversationId,
+        chatId: chatId,
+        sessionId: sessionId,
         assistantMessage,
       })}\n\n`);
 
-    
+
       res.end();
 
     } catch (error) {
@@ -123,4 +157,4 @@ export class MessageController {
   }
 }
 
-export const messageController = new MessageController(messageService, new AiService());
+export const messageController = new MessageController(messageService, conversationService, new AiService());

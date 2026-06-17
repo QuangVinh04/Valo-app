@@ -6,7 +6,7 @@ skinparam defaultFontName Arial
 title Mini AgentHub - 3-Layer Detailed Package Diagram (Folder-Oriented)
 
 rectangle "Client (React/Web)" as client
-rectangle "LLMs\n(Groq / Flowise)" as llm
+rectangle "Flowise API" as llm
 rectangle "PostgreSQL" as postgres
 
 package "Node.js Express Server" as server {
@@ -77,7 +77,6 @@ package "Node.js Express Server" as server {
     }
 
     package "integrations" as b_integrations {
-      class "groq.adapter.ts"
       class "flowise.adapter.ts"
       class "email.adapter.ts"
     }

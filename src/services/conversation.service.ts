@@ -4,13 +4,17 @@ import { ConversationMapper } from '../mapper/conversation.mapper.js';
 import AppError from '../utils/app-error.js';
 import { ErrorCode } from '../constants/error-code.js';
 import { buildCursorPaginatedResult, CursorPaginatedResult, CursorPaginationOptions } from '../utils/pagination.util.js';
+import AiService from './ai.service.js';
+import { AiModel, AiModelKey } from '../constants/ai-model.constant.js';
 
 export class ConversationService {
     private conversationRepo: ConversationRepository;
+    private aiService: AiService;
 
 
-    constructor(conversationRepo: ConversationRepository) {
+    constructor(conversationRepo: ConversationRepository, aiService: AiService) {
         this.conversationRepo = conversationRepo;
+        this.aiService = aiService;
 
     }
 
@@ -38,7 +42,18 @@ export class ConversationService {
         if (!conversation) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }
-        return ConversationMapper.toDetailDto(conversation);
+
+        const detail = ConversationMapper.toDetailDto(conversation);
+
+        if (conversation.chatId && conversation.sessionId) {
+            detail.messages = await this.aiService.getHistory(
+                (conversation.modelName ?? AiModel.FLOWISE_AGENT) as AiModelKey,
+                conversation.chatId,
+                conversation.sessionId
+            );
+        }
+
+        return detail;
     }
 
     /**
@@ -49,8 +64,8 @@ export class ConversationService {
         id: string, 
         updates: UpdateConversationRequestDto): Promise<ConversationUpdateResponseDto> {
 
-        const exists = await this.conversationRepo.existsByIdAndUserId(id, userId);
-        if (!exists) {
+        const conversation = await this.conversationRepo.getByIdAndUserId(id, userId);
+        if (!conversation) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }
         
@@ -64,8 +79,8 @@ export class ConversationService {
      * Xóa một cuộc hội thoại sau khi kiểm tra nó tồn tại.
      */
     async deleteConversation(userId: string, id: string): Promise<boolean> {
-        const exists = await this.conversationRepo.existsByIdAndUserId(id, userId);
-        if (!exists) {
+        const conversation = await this.conversationRepo.getByIdAndUserId(id, userId);
+        if (!conversation) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }
         
@@ -103,4 +118,4 @@ export class ConversationService {
     }
 }
 
-export const conversationService = new ConversationService(conversationRepository);
+export const conversationService = new ConversationService(conversationRepository, new AiService());

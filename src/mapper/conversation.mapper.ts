@@ -8,13 +8,9 @@ export class ConversationMapper {
       id: conversation.id,
       title: conversation.title,
       modelName: conversation.modelName,
-      messages: conversation.messages.map(msg => ({
-        id: msg.id,
-        content: msg.content,
-        senderType: msg.senderType,
-        modelName: msg.modelName,
-        createdAt: msg.createdAt
-      })),
+      chatId: conversation.chatId,
+      sessionId: conversation.sessionId,
+      messages: [],
     };
   }
 

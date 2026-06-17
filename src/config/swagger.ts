@@ -213,10 +213,10 @@ export const swaggerDocument = {
       ConversationMessageResponse: {
         type: 'object',
         properties: {
-          id: { type: 'string', format: 'uuid' },
+          id: { type: 'string' },
           content: { type: 'string', example: 'Xin chao' },
           senderType: { type: 'string', enum: ['user', 'assistant', 'system'] },
-          modelName: { type: 'string', nullable: true, example: 'llama-3.3-70b-versatile' },
+          modelName: { type: 'string', nullable: true, example: 'flowise-agent' },
           createdAt: { type: 'string', format: 'date-time' },
         },
       },
@@ -225,14 +225,14 @@ export const swaggerDocument = {
         required: ['title', 'modelName'],
         properties: {
           title: { type: 'string', example: 'New conversation' },
-          modelName: { type: 'string', example: 'llama-3.3-70b-versatile' },
+          modelName: { type: 'string', example: 'flowise-agent' },
         },
       },
       UpdateConversationRequest: {
         type: 'object',
         properties: {
           title: { type: 'string', example: 'Updated title' },
-          modelName: { type: 'string', example: 'llama-3.1-8b-instant' },
+          modelName: { type: 'string', example: 'flowise-agent' },
         },
       },
       ConversationResponse: {
@@ -240,7 +240,9 @@ export const swaggerDocument = {
         properties: {
           id: { type: 'string', format: 'uuid' },
           title: { type: 'string', example: 'New conversation' },
-          modelName: { type: 'string', example: 'llama-3.3-70b-versatile' },
+          modelName: { type: 'string', example: 'flowise-agent' },
+          chatId: { type: 'string', nullable: true },
+          sessionId: { type: 'string', nullable: true },
           userId: { type: 'string', format: 'uuid' },
           messages: {
             type: 'array',

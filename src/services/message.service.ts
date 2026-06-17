@@ -1,107 +1,82 @@
+import { randomUUID } from 'node:crypto';
 import { ConversationRepository, conversationRepository } from '../repositories/conversation.repository.js';
-import { MessageRepository, messageRepository } from '../repositories/message.repository.js';
 import { UserRepository, userRepository } from '../repositories/user.repository.js';
 import { ErrorCode } from '../constants/error-code.js';
-import { MessageMapper } from '../mapper/message.mapper.js';
 import { withTransaction } from '../database/transaction.js';
 import AppError from '../utils/app-error.js';
 import { SendMessageRequestDto } from '../types/message.type.js';
-import { buildChatContext } from '../utils/chat-text.util.js';
 
 
 
 export class MessageService {
   private readonly conversationRepo: ConversationRepository;
   private readonly userRepo: UserRepository;
-  private readonly messageRepo: MessageRepository;
 
 
   constructor(
     conversationRepo: ConversationRepository,
-    userRepo: UserRepository,
-    messageRepo: MessageRepository
+    userRepo: UserRepository
   ) {
     this.conversationRepo = conversationRepo;
     this.userRepo = userRepo;
-    this.messageRepo = messageRepo;
   }
 
   /**
    * Chuẩn bị dữ liệu cho luồng chat: kiểm tra quyền sở hữu conversation, tạo conversation nếu cần,
-   * lưu tin nhắn người dùng và xây dựng context gần nhất cho AI.
+   * tạo conversation nếu cần và chuẩn bị metadata để gọi Flowise.
    */
   async prepareMessageStream(
     userId: string,
     payload: SendMessageRequestDto,
     conversationId?: string,
   ) {
+
+    let targetConversationId: string | null ;
+    let chatId: string | null;
+    let sessionId: string | null;
+
     if (conversationId) {
-      const conversation = await this.conversationRepo.getById(conversationId);
-      if (!conversation || conversation.userId !== userId) {
+      const conversation = await this.conversationRepo.getByIdAndUserId(conversationId, userId);
+      if (!conversation) {
         throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
       }
+
+      targetConversationId = conversation.id;
+      chatId = conversation.chatId;
+      sessionId = conversation.sessionId;
+
     } else {
       const user = await this.userRepo.findById(userId);
       if (!user) throw new AppError(ErrorCode.USER_NOT_FOUND);
-    }
 
-    return withTransaction(async (tx) => {
-      const conversationRepo = new ConversationRepository(tx);
-      const messageRepo = new MessageRepository(tx);
-
-
-      let targetConversationId = conversationId;
-      if (!targetConversationId) {
-        const newConversation = await conversationRepo.create({
-          userId,
-          title: payload.title?.trim() || payload.content.slice(0, 50),
-          modelName: payload.modelName,
-        });
-        targetConversationId = newConversation.id;
-      }
-
-      const userMessage = await messageRepo.create({
-        conversationId: targetConversationId,
-        content: payload.content,
-        senderType: 'user',
+       const newConversation = await this.conversationRepo.create({
+        userId,
+        title: payload.title?.trim() || payload.question.slice(0, 50),
         modelName: payload.modelName,
       });
+      targetConversationId = newConversation.id;
+      chatId = null;
+      sessionId = null;
+    }
 
-      const history = await messageRepo.findRecentByConversationId(
-        targetConversationId,
-        10
-      );
-
-      return {
-        conversationId: targetConversationId,
-        userMessage: MessageMapper.toMessageResponseDto(userMessage),
-        context: buildChatContext(history),
-      };
-    });
-  }
-
-
-  /**
-   * Lưu câu trả lời hoàn chỉnh của assistant sau khi quá trình stream kết thúc.
-   */
-  async saveAssistantMessage(
-    conversationId: string,
-    content: string,
-    modelName: string
-  ) {
-    const assistantMessage = await this.messageRepo.create({
-      conversationId,
-      content,
-      senderType: 'assistant',
-      modelName,
-    });
-
-    return MessageMapper.toMessageResponseDto(assistantMessage);
+    return {
+      conversationId: targetConversationId,
+      chatId: chatId,
+      sessionId: sessionId,
+      userMessage: {
+        id: randomUUID(),
+        content: payload.question,
+        senderType: 'user',
+        modelName: payload.modelName,
+        createdAt: new Date(),
+      },
+    };
   }
 }
 
+
+
 export const messageService = new MessageService(
   conversationRepository,
-  userRepository,
-  messageRepository
+  userRepository
 );

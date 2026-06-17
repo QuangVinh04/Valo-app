@@ -1,6 +1,6 @@
 # Valo App Backend
 
-Backend API cho Valo App, xây dựng bằng Express, TypeScript, Prisma, PostgreSQL, Redis và Groq AI provider.
+Backend API cho Valo App, xây dựng bằng Express, TypeScript, Prisma, PostgreSQL, Redis và Flowise AI provider.
 
 ## Tính năng chính
 
@@ -8,7 +8,7 @@ Backend API cho Valo App, xây dựng bằng Express, TypeScript, Prisma, Postgr
 - Quản lý người dùng, hồ sơ cá nhân và thiết lập giao diện/ngôn ngữ.
 - Quản lý nhóm, quyền và thành viên nhóm.
 - Quản lý hội thoại và tin nhắn chat.
-- Stream phản hồi AI qua Groq.
+- Stream phản hồi AI qua Flowise.
 - Gửi email mật khẩu tạm thời bằng SMTP.
 - Swagger UI tại `/api-docs`.
 
@@ -20,7 +20,7 @@ Backend API cho Valo App, xây dựng bằng Express, TypeScript, Prisma, Postgr
 - PostgreSQL
 - Redis
 - Nodemailer
-- Groq SDK
+- Flowise API
 - Zod validation
 - Docker Compose
 
@@ -50,7 +50,7 @@ prisma/
 - PostgreSQL
 - Redis
 - SMTP account để gửi email
-- Groq API key nếu dùng tính năng AI
+- Flowise API key nếu dùng tính năng AI
 
 ## Cài đặt local
 
@@ -88,9 +88,10 @@ SMTP_USER=your_smtp_user
 SMTP_PASS=your_smtp_password
 SMTP_FROM=no-reply@example.com
 
-AI_PROVIDER=groq
-GROQ_API_KEY=your_groq_api_key
-GROQ_BASE_URL=https://api.groq.com
+AI_PROVIDER=flowise
+FLOWISE_API_KEY=your_flowise_api_key
+FLOWISE_BASE_URL=https://aiplatform.bkav.ai
+FLOWISE_CHATFLOW_ID=fa6e3226-dc90-4c85-b7da-fbe275d198ba
 ```
 
 3. Generate Prisma client và chạy migration:

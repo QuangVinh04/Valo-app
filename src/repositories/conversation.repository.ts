@@ -9,19 +9,9 @@ const conversationDetailSelect = {
   id: true,
   title: true,
   modelName: true,
-  messages: {
-    orderBy: {
-      createdAt: 'asc'
-    },
-    take: 10,
-    select: {
-      id: true,
-      content: true,
-      senderType: true,
-      modelName: true,
-      createdAt: true
-    }
-  },
+  chatId: true,
+  sessionId: true,
+  updatedAt: true,
 } satisfies Prisma.ConversationSelect;
 
 
@@ -29,9 +19,7 @@ export type ConversationDetail = Prisma.ConversationGetPayload<{
   select: typeof conversationDetailSelect;
 }>;
 
-export type ConversationUpdate = Pick<Conversation, 'id' | 'title' | 'modelName' | 'updatedAt'>;
 export type ConversationSummary = Pick<Conversation, 'id' | 'title' | 'updatedAt'>;
-export type ConversationOwner = Pick<Conversation, 'id' | 'userId'>;
 
 
 export interface CreateConversationInput {
@@ -43,6 +31,8 @@ export interface CreateConversationInput {
 export interface UpdateConversationInput {
   title?: string;
   modelName?: string;
+  chatId?: string;
+  sessionId?: string;
 }
 
 export class ConversationRepository {
@@ -66,13 +56,9 @@ export class ConversationRepository {
     });
   }
 
-  async getById(id: string): Promise<ConversationOwner | null> {
+  async getById(id: string): Promise<Conversation | null> {
     return this.prisma.conversation.findUnique({
       where: { id },
-      select: {
-        id: true,
-        userId: true
-      }
     });
   }
 
@@ -83,27 +69,11 @@ export class ConversationRepository {
     });
   }
 
-  async existsByIdAndUserId(id: string, userId: string): Promise<boolean> {
-    const conversation = await this.prisma.conversation.findFirst({
-      where: { id, userId },
-      select: {
-        id: true
-      }
-    });
 
-    return Boolean(conversation);
-  }
-
-  async update(id: string, updates: UpdateConversationInput): Promise<ConversationUpdate> {
+ async update(id: string, updates: UpdateConversationInput): Promise<Conversation> {
     return this.prisma.conversation.update({
       where: { id },
-      data: updates,
-      select: {
-        id: true,
-        title: true,
-        modelName: true,
-        updatedAt: true
-      }
+      data: updates
     });
   }
 

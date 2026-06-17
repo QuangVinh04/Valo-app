@@ -10,6 +10,8 @@ export const createConversationSchema = z.object({
 export const updateConversationSchema = z.object({
   title: z.string().trim().min(2, 'Title is required').max(100, 'Title is too long').optional(),
   modelName: z.string().trim().min(2, 'Model name is required').max(100, 'Model name is too long').optional(),
+  chatId: z.string().trim().optional(),
+  sessionId: z.string().trim().optional(),
 });
 
 
@@ -28,6 +30,8 @@ export interface ConversationUpdateResponseDto {
   id: string;
   title: string;
   modelName: string;
+  chatId: string | null;
+  sessionId: string | null;
   updatedAt: Date; 
 }
 
@@ -36,6 +40,8 @@ export interface ConversationDetailResponseDto {
   id: string;
   title: string;
   modelName: string;
+  chatId: string | null;
+  sessionId: string | null;
   messages: MessageResponseDto[];
 }
 
