@@ -8,17 +8,35 @@ import env from '../config/env.js';
 import logger from '../utils/logger.util.js';
 import { AiModelKey } from '../constants/ai-model.constant.js';
 import { ConversationService, conversationService } from '../services/conversation.service.js';
-import type { UploadedAiFile } from '../services/ai/ai-provider.js';
+import {
+  DocumentFileService,
+  documentFileService,
+} from '../services/file.service.js';
+import {
+  AttachmentRepository,
+  attachmentRepository,
+} from '../repositories/attachment.repository.js';
+
 
 
 export class MessageController {
   private readonly messageService: MessageService;
   private readonly conversationService: ConversationService;
+  private readonly documentFileService: DocumentFileService;
+  private readonly attachmentRepo: AttachmentRepository;
   private readonly aiService: AiService;
 
-  constructor(messageService: MessageService, conversationService: ConversationService, aiService: AiService) {
+  constructor(
+    messageService: MessageService,
+    conversationService: ConversationService,
+    documentFileService: DocumentFileService,
+    attachmentRepo: AttachmentRepository,
+    aiService: AiService
+  ) {
     this.messageService = messageService;
     this.conversationService = conversationService;
+    this.documentFileService = documentFileService;
+    this.attachmentRepo = attachmentRepo;
     this.aiService = aiService;
   }
 
@@ -44,12 +62,13 @@ export class MessageController {
 
       res.on('close', handleClientClose);
 
+      const incomingFiles = payload.fileUploads ?? [];
+
       const prepared = await this.messageService.prepareMessageStream(
         userId,
         payload,
         conversationId
       )
-
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
@@ -58,17 +77,41 @@ export class MessageController {
       res.write(`event: ready\n`);
       res.write(`data: ${JSON.stringify({
         conversationId: prepared.conversationId,
-        userMessage: prepared.userMessage,
+        userMessage: {
+          ...prepared.userMessage,
+          fileUploads: incomingFiles,
+        },
       })}\n\n`);
 
+
+      const processedFiles = await this.documentFileService.processFilesFromUrls(incomingFiles);
+      await this.attachmentRepo.createMany(
+        userId,
+        processedFiles.documents
+      );
+
+
+
+      const promptContext = payload.fileContext || processedFiles.promptContext;
+      const aiQuestion = promptContext
+        ? [
+          prepared.userMessage.content,
+          '',
+          '[FILE TÀI LIỆU CỦA USER]',
+          promptContext,
+        ].join('\n')
+        : prepared.userMessage.content;
+
+
+
       for await (const chunk of this.aiService.stream(
-        prepared.userMessage.content,
+        aiQuestion,
         payload.modelName as AiModelKey,
         {
           conversationId: prepared.conversationId,
           chatId: prepared.chatId,
           sessionId: prepared.sessionId,
-          files: (req as AuthenticatedRequest & { files?: UploadedAiFile[] }).files,
+          fileUploads: incomingFiles,
           signal: abortController.signal
         }
       )) {
@@ -157,4 +200,10 @@ export class MessageController {
   }
 }
 
-export const messageController = new MessageController(messageService, conversationService, new AiService());
+export const messageController = new MessageController(
+  messageService,
+  conversationService,
+  documentFileService,
+  attachmentRepository,
+  new AiService()
+);

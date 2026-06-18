@@ -1,6 +1,7 @@
 import env from '../../config/env.js';
 import { ErrorCode } from '../../constants/error-code.js';
 import { MessageResponseDto } from '../../types/message.type.js';
+import { FileUploadDto } from '../../types/upload.type.js';
 import AppError from '../../utils/app-error.js';
 import { AiProvider, AiStreamChunk, AiStreamOptions } from './ai-provider.js';
 
@@ -21,19 +22,14 @@ type FlowisePredictionResponse = {
 
 type FlowiseChatMessage = {
   id: string;
-  role: 'userMessage' | 'apiMessage' | string; // Giao diện API thực tế dùng 2 giá trị này
+  role: 'userMessage' | 'apiMessage' | string; 
   content: string;
   chatId: string;
   sessionId: string;
-  createdDate: string; // Bản chuẩn JSON của bạn trả về trường này dạng ISO String
+  createdDate: string; 
+  fileUploads?: unknown;
 };
 
-type FlowiseUpload = {
-  data: string;
-  type: 'file';
-  name: string;
-  mime: string;
-};
 
 export class FlowiseProvider implements AiProvider {
   readonly name = 'flowise';
@@ -62,16 +58,11 @@ export class FlowiseProvider implements AiProvider {
       const body = {
         question,
         streaming: true,
+        ...(options.fileUploads?.length && {
+          uploads: options.fileUploads,
+        }),
         ...(options.chatId && { chatId: options.chatId }),
         ...(options.sessionId && { sessionId: options.sessionId }),
-        ...(options.files?.length && {
-          uploads: options.files.map((file): FlowiseUpload => ({
-            data: `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
-            type: 'file',
-            name: file.originalname,
-            mime: file.mimetype,
-          })),
-        }),
       };
 
       const response = await fetch(this.predictionUrl(), {
@@ -116,11 +107,11 @@ export class FlowiseProvider implements AiProvider {
           if (!buffer.trim()) break;
           buffer += '\n\n';
         } else {
-          // 1. Nhận dữ liệu text từ luồng mạng
+          // Nhận dữ liệu text từ luồng mạng
           buffer += decoder.decode(value, { stream: true });
         }
 
-        // 2. Dữ liệu Flowise/Bkav trả về theo từng block: message: + data:{...}
+        // Dữ liệu Flowise trả về theo từng block: message: + data:{...}
         let boundaryIndex: number;
         while (true) {
           const lfBoundary = buffer.indexOf('\n\n');
@@ -162,7 +153,7 @@ export class FlowiseProvider implements AiProvider {
             continue;
           }
 
-          // Hứng chính xác thông tin ID từ block sự kiện 'metadata' của Bkav
+          // Hứng chính xác thông tin ID từ block sự kiện 'metadata' 
           if (parsed.event === 'metadata') {
             if (parsed.data && typeof parsed.data === 'object') {
               if (parsed.data.chatId) chatId = parsed.data.chatId;
@@ -236,6 +227,7 @@ export class FlowiseProvider implements AiProvider {
           senderType,
           modelName: 'flowise-agent',
           createdAt: new Date(message.createdDate),
+          fileUploads: this.normalizeFileUploads(message.fileUploads),
         }
       });
     } catch (error) {
@@ -254,6 +246,51 @@ export class FlowiseProvider implements AiProvider {
       .replace(/,+$/, '')
       .replace(/\/+$/, '')
       .replace(/\/api\/v1$/, '');
+  }
+
+
+  private normalizeFileUploads(fileUploads: unknown): FileUploadDto[] {
+    const parsedFileUploads = typeof fileUploads === 'string'
+      ? this.parseFileUploads(fileUploads)
+      : fileUploads;
+
+    if (!Array.isArray(parsedFileUploads)) return [];
+
+    return parsedFileUploads
+      .filter((fileUpload): fileUpload is Record<string, unknown> => (
+        typeof fileUpload === 'object' && fileUpload !== null
+      ))
+      .flatMap((fileUpload) => {
+        const data = fileUpload.data;
+        const name = fileUpload.name;
+        const type = fileUpload.type;
+        const mime = fileUpload.mime;
+        const size = fileUpload.size;
+
+        if (
+          typeof data !== 'string'
+          || typeof name !== 'string'
+          || typeof mime !== 'string'
+        ) {
+          return [];
+        }
+
+        return [{
+          data,
+          name,
+          type: type === 'url' ? 'url' : 'url',
+          mime,
+          ...(typeof size === 'number' ? { size } : {}),
+        }];
+      });
+  }
+
+  private parseFileUploads(fileUploads: string): unknown {
+    try {
+      return JSON.parse(fileUploads);
+    } catch {
+      return [];
+    }
   }
 
   private toAppError(error: unknown): AppError {

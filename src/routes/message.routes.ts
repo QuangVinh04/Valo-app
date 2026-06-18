@@ -9,15 +9,6 @@ import { sendMessageSchema } from '../types/message.type.js';
 import { aiChatRateLimit } from '../middlewares/rate-limit.middleware.js';
 
 const router = Router();
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    files: 5,
-    fileSize: 10 * 1024 * 1024,
-  },
-});
-
-
 
 
 router.post(
@@ -25,7 +16,7 @@ router.post(
   authenticate,
   aiChatRateLimit,
   authorize(PermissionConstant.CHAT.key),
-  upload.array('files', 5),
+
   validateRequest(sendMessageSchema),
   messageController.sendMessageStream
 );
@@ -35,7 +26,6 @@ router.post(
   authenticate,
   aiChatRateLimit,
   authorize(PermissionConstant.CHAT.key),
-  upload.array('files', 5),
   validateRequest(sendMessageSchema),
   messageController.sendMessageStream
 );

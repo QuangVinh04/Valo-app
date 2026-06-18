@@ -12,7 +12,10 @@ export class ConversationService {
     private aiService: AiService;
 
 
-    constructor(conversationRepo: ConversationRepository, aiService: AiService) {
+    constructor(
+        conversationRepo: ConversationRepository,
+        aiService: AiService
+    ) {
         this.conversationRepo = conversationRepo;
         this.aiService = aiService;
 
@@ -118,4 +121,7 @@ export class ConversationService {
     }
 }
 
-export const conversationService = new ConversationService(conversationRepository, new AiService());
+export const conversationService = new ConversationService(
+    conversationRepository,
+    new AiService()
+);

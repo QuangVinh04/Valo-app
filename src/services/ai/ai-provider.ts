@@ -1,17 +1,12 @@
 import { MessageResponseDto } from '../../types/message.type.js';
+import { FileUploadDto } from '../../types/upload.type.js';
 
 export interface AiStreamOptions {
   chatId?: string | null;
   sessionId?: string | null;
   conversationId?: string;
-  files?: UploadedAiFile[];
+  fileUploads?: FileUploadDto[];
   signal?: AbortSignal;
-}
-
-export interface UploadedAiFile {
-  originalname: string;
-  mimetype: string;
-  buffer: Buffer;
 }
 
 export interface AiStreamChunk {

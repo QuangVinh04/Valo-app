@@ -30,8 +30,6 @@ export interface ConversationUpdateResponseDto {
   id: string;
   title: string;
   modelName: string;
-  chatId: string | null;
-  sessionId: string | null;
   updatedAt: Date; 
 }
 
@@ -40,8 +38,6 @@ export interface ConversationDetailResponseDto {
   id: string;
   title: string;
   modelName: string;
-  chatId: string | null;
-  sessionId: string | null;
   messages: MessageResponseDto[];
 }
 

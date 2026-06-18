@@ -5,6 +5,7 @@ import { PrismaService } from '../config/prisma.js';
 import { UserRepository } from '../repositories/user.repository.js';
 import AppError from '../utils/app-error.js';
 import { verifyToken } from '../utils/jwt.util.js';
+import { FileUploadDto } from '../types/upload.type.js';
 
 const prismaService = PrismaService.getInstance();
 const userRepository = new UserRepository(prismaService.client);
