@@ -17,8 +17,6 @@ export class AuthMapper {
       id: user.id,
       fullName: user.fullName,
       email: user.email,
-      phoneNumber: user.phoneNumber,
-      address: user.address,
       mustChangePassword: user.mustChangePassword,
       accessToken,
       settings: mapUserSettings(user.settings),

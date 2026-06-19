@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
-import { ErrorCode, type ErrorCodeDescription } from '../constants/error-code.js';
+import { ErrorCode } from '../constants/error-code.js';
 import { sendError } from '../utils/api-response.js';
 import logger from '../utils/logger.util.js';
 

@@ -3,6 +3,7 @@ import type {
   AuthResponseDto,
   ChangePasswordRequestDto,
   LoginRequestDto,
+  RefreshTokenResponseDto,
   RegisterRequestDto,
 } from '../types/auth.type.js';
 import { authService, AuthService } from '../services/auth.service.js';
@@ -80,7 +81,7 @@ export class AuthController {
 
   refreshAccessToken = catchAsync(async (
     req: Request,
-    res: Response<ApiResponse<AuthResponseDto>>,
+    res: Response<ApiResponse<RefreshTokenResponseDto>>,
     _next: NextFunction
   ) => {
     const refreshToken = req.cookies.refreshToken;

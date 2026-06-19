@@ -34,6 +34,9 @@ const maxFileBytes = 10 * 1024 * 1024;
 const allowedCloudinaryResourceTypes = new Set(['image', 'raw']);
 
 export class DocumentFileService {
+  /**
+   * Khởi tạo cấu hình Cloudinary nếu server có đủ thông tin xác thực.
+   */
   constructor() {
     if (env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET) {
       cloudinary.config({
@@ -44,6 +47,9 @@ export class DocumentFileService {
     }
   }
 
+  /**
+   * Tải các file từ URL Cloudinary, trích xuất nội dung văn bản và tạo context cho prompt.
+   */
   async processFilesFromUrls(fileUploads: FileUploadDto[] = []): Promise<ProcessedDocumentsResult> {
     if (!fileUploads.length) {
       return {
@@ -94,6 +100,9 @@ export class DocumentFileService {
     };
   }
 
+  /**
+   * Tải file từ Cloudinary, thử lại bằng signed URL nếu URL công khai không truy cập được.
+   */
   private async fetchCloudFile(url: string): Promise<Response> {
     const parsedUrl = this.parseAllowedCloudinaryUrl(url);
     const response = await fetch(parsedUrl.toString());
@@ -109,6 +118,9 @@ export class DocumentFileService {
     return fetch(signedUrl);
   }
 
+  /**
+   * Kiểm tra URL Cloudinary hợp lệ và thuộc đúng cloud đã cấu hình.
+   */
   private parseAllowedCloudinaryUrl(url: string): URL {
     try {
       const parsedUrl = new URL(url);
@@ -137,10 +149,13 @@ export class DocumentFileService {
         throw error;
       }
 
-      throw new Error('Invalid Cloudinary URL');
+      throw new Error('Invalid Cloudinary URL', { cause: error });
     }
   }
 
+  /**
+   * Tạo signed URL cho tài nguyên raw để đọc các file cần quyền truy cập có chữ ký.
+   */
   private generateSignedUrl(parsedUrl: URL): string | null {
     const pathname = parsedUrl.pathname.replace('/image/upload/', '/raw/upload/');
     const urlParts = pathname.split('/upload/');
@@ -156,12 +171,18 @@ export class DocumentFileService {
     });
   }
 
+  /**
+   * Đảm bảo kích thước file không vượt quá giới hạn hệ thống cho phép.
+   */
   private assertFileSize(size?: number): void {
     if (typeof size === 'number' && size > maxFileBytes) {
       throw new Error(`File exceeds ${this.formatBytes(maxFileBytes)}`);
     }
   }
 
+  /**
+   * Đọc response stream thành Buffer và dừng đọc nếu dữ liệu vượt quá giới hạn.
+   */
   private async readResponseBuffer(response: Response): Promise<Buffer> {
     const contentLength = Number(response.headers.get('content-length'));
     if (Number.isFinite(contentLength)) {
@@ -200,13 +221,16 @@ export class DocumentFileService {
     );
   }
 
+  /**
+   * Chuyển số byte thành chuỗi MB để hiển thị trong thông báo lỗi.
+   */
   private formatBytes(bytes: number): string {
     return `${Math.floor(bytes / 1024 / 1024)}MB`;
   }
 
-
-
-
+  /**
+   * Chọn bộ xử lý phù hợp để trích xuất văn bản dựa trên loại file.
+   */
   private async extractText(file: BufferedUploadedFile): Promise<string> {
     if (this.isPlainText(file.mimetype)) {
       return file.buffer.toString('utf8');
@@ -230,6 +254,9 @@ export class DocumentFileService {
     );
   }
 
+  /**
+   * Kiểm tra MIME type có thuộc nhóm file văn bản đọc trực tiếp được hay không.
+   */
   private isPlainText(mime: string): boolean {
     return mime.startsWith('text/')
       || mime === 'application/json'
@@ -238,6 +265,9 @@ export class DocumentFileService {
       || mime === 'text/markdown';
   }
 
+  /**
+   * Kiểm tra file có phải bảng tính Excel dựa trên MIME type hoặc phần mở rộng.
+   */
   private isSpreadsheet(file: BufferedUploadedFile): boolean {
     return file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       || file.mimetype === 'application/vnd.ms-excel'
@@ -245,11 +275,17 @@ export class DocumentFileService {
       || file.originalname.toLowerCase().endsWith('.xls');
   }
 
+  /**
+   * Kiểm tra file có phải tài liệu Word dựa trên MIME type hoặc phần mở rộng.
+   */
   private isWordDocument(file: BufferedUploadedFile): boolean {
     return file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       || file.originalname.toLowerCase().endsWith('.docx');
   }
 
+  /**
+   * Trích xuất văn bản từ file PDF bằng thư viện pdf-parse.
+   */
   private async extractPdfText(file: BufferedUploadedFile): Promise<string> {
     const pdfParse = await this.loadOptionalPackage('pdf-parse');
     const parsePdf = pdfParse.default ?? pdfParse;
@@ -276,6 +312,9 @@ export class DocumentFileService {
     );
   }
 
+  /**
+   * Trích xuất nội dung các sheet trong file Excel và chuyển thành văn bản CSV.
+   */
   private async extractSpreadsheetText(file: BufferedUploadedFile): Promise<string> {
     const xlsx = await this.loadOptionalPackage('xlsx');
     const workbook = xlsx.read(file.buffer, { type: 'buffer' });
@@ -289,12 +328,18 @@ export class DocumentFileService {
       .join('\n\n');
   }
 
+  /**
+   * Trích xuất văn bản thô từ file Word bằng thư viện mammoth.
+   */
   private async extractWordText(file: BufferedUploadedFile): Promise<string> {
     const mammoth = await this.loadOptionalPackage('mammoth');
     const result = await mammoth.extractRawText({ buffer: file.buffer });
     return result.value ?? '';
   }
 
+  /**
+   * Nạp thư viện parser khi cần dùng và báo lỗi rõ ràng nếu package bị thiếu.
+   */
   private async loadOptionalPackage(packageName: string): Promise<any> {
     try {
       return await importModule(packageName);
@@ -306,6 +351,9 @@ export class DocumentFileService {
     }
   }
 
+  /**
+   * Ghép nội dung các tài liệu thành prompt context dùng cho AI.
+   */
   private createPromptContext(documents: ProcessedDocument[]): string {
     const context = documents
       .map((document, index) => [
@@ -320,7 +368,9 @@ export class DocumentFileService {
     return this.truncateText(context, maxPromptContextChars);
   }
 
-
+  /**
+   * Cắt ngắn văn bản theo giới hạn ký tự để tránh prompt hoặc document quá dài.
+   */
   private truncateText(text: string, maxLength: number): string {
     if (text.length <= maxLength) return text;
     return `${text.slice(0, maxLength)}\n[Content truncated]`;

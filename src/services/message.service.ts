@@ -2,7 +2,6 @@ import { randomUUID } from 'node:crypto';
 import { ConversationRepository, conversationRepository } from '../repositories/conversation.repository.js';
 import { UserRepository, userRepository } from '../repositories/user.repository.js';
 import { ErrorCode } from '../constants/error-code.js';
-import { withTransaction } from '../database/transaction.js';
 import AppError from '../utils/app-error.js';
 import { SendMessageRequestDto } from '../types/message.type.js';
 

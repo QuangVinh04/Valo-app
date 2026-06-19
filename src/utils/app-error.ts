@@ -3,14 +3,14 @@ import type { ErrorCodeDescription } from '../constants/error-code.js';
 
 export default class AppError extends Error {
   readonly statusCode: number;
-  readonly code: string;
+  readonly message: string;
   readonly isOperational: boolean;
 
   constructor(error: ErrorCodeDescription, customMessage?: string) {
     super(customMessage ?? error.message);
 
     this.statusCode = error.statusCode;
-    this.code = error.code ?? error.message;
+    this.message = error.message;
     this.isOperational = true;
 
     Object.setPrototypeOf(this, new.target.prototype);

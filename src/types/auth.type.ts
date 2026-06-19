@@ -30,9 +30,11 @@ export interface AuthResponseDto {
   id: string;
   fullName: string;
   email: string;
-  phoneNumber: string | null;
-  address: string | null;
   mustChangePassword: boolean;
   accessToken: string;
   settings: UserSettingsDto;
+}
+
+export interface RefreshTokenResponseDto {
+  accessToken: string;
 }

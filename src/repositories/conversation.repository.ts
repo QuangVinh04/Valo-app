@@ -52,13 +52,6 @@ export class ConversationRepository {
         modelName: conversation.modelName,
         userId: conversation.userId,
       },
-      select: conversationDetailSelect
-    });
-  }
-
-  async getById(id: string): Promise<Conversation | null> {
-    return this.prisma.conversation.findUnique({
-      where: { id },
     });
   }
 

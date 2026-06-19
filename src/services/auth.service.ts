@@ -4,6 +4,7 @@ import {
   ChangePasswordRequestDto,
   LoginRequestDto,
   RefreshTokenRequestDto,
+  RefreshTokenResponseDto,
   RegisterRequestDto,
 } from '../types/auth.type.js';
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
@@ -119,7 +120,7 @@ export class AuthService {
   /**
    * Kiểm tra refresh token, đối chiếu bản đã hash trong DB và phát access token mới.
    */
-  async refreshToken(payload: RefreshTokenRequestDto): Promise<AuthResponseDto> {
+  async refreshToken(payload: RefreshTokenRequestDto): Promise<RefreshTokenResponseDto> {
     const token = payload.refreshToken;
 
     if (!token) {
@@ -148,7 +149,9 @@ export class AuthService {
       id: user.id,
     });
 
-    return AuthMapper.toAuthResponse(user, accessToken);
+    return {
+      accessToken
+    };
   }
 
   async getUserPermissions(userId: string): Promise<string[]> {

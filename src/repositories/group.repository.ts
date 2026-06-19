@@ -80,7 +80,6 @@ export interface UpdateGroupInput {
   permissionKeys?: readonly string[];
 }
 
-
 export class GroupRepository {
   private readonly prisma: DbClient;
 
@@ -160,10 +159,10 @@ export class GroupRepository {
     });
   }
 
-  async updateGroup(id: string, input: {
-    name?: string;
-    description?: string;
-  }): Promise<void> {
+  async updateGroup(
+    id: string,
+    input: Pick<UpdateGroupInput, 'name' | 'description'>
+  ): Promise<void> {
     await this.prisma.group.update({
       where: { id },
       data: input,
@@ -192,19 +191,20 @@ export class GroupRepository {
     });
   }
 
-  async findExistingIdsByIds(ids: string[]): Promise<string[]> {
-  const groups = this.prisma.group.findMany({
-    where: {
-      id: {
-        in: ids,
+  async findExistingIdsByIds(ids: readonly string[]): Promise<string[]> {
+    if (ids.length === 0) return [];
+
+    const groups = await this.prisma.group.findMany({
+      where: {
+        id: {
+          in: [...ids],
+        },
       },
-    },
-    select: {
-      id: true,
-    },
-  });
-  return groups.then((results) => results.map((group) => group.id));
-}
+      select: groupIdSelect,
+    });
+
+    return groups.map((group) => group.id);
+  }
 
   async addMembers(groupId: string, userIds: readonly string[]) {
     return this.prisma.userGroup.createMany({
@@ -227,7 +227,6 @@ export class GroupRepository {
     });
   }
 }
-
 
 const prismaService = PrismaService.getInstance();
 export const groupRepository = new GroupRepository(prismaService.client);
