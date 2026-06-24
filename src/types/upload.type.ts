@@ -10,6 +10,7 @@ export interface FileUploadDto {
 
 export interface AttachmentResponseDto {
   id: string;
+  messageId?: string | null;
   name: string;
   mime: string;
   url?: string | null;

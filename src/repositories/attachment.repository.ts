@@ -14,13 +14,15 @@ export class AttachmentRepository {
 
   async createMany(
     userId: string,
-    documents: ProcessedDocument[]
+    documents: ProcessedDocument[],
+    messageId?: string
   ): Promise<number> {
     if (!documents.length) return 0;
 
     const result = await this.prisma.attachment.createMany({
       data: documents.map((document) => ({
         userId,
+        messageId,
         fileName: document.name,
         mimeType: document.mime,
         fileUrl: document.url,
@@ -49,6 +51,7 @@ export class AttachmentRepository {
       ],
       select: {
         id: true,
+        messageId: true,
         fileName: true,
         mimeType: true,
         fileUrl: true,
@@ -59,6 +62,7 @@ export class AttachmentRepository {
 
     return attachments.map((attachment) => ({
       id: attachment.id,
+      messageId: attachment.messageId,
       name: attachment.fileName,
       mime: attachment.mimeType,
       url: attachment.fileUrl,
@@ -77,6 +81,7 @@ export class AttachmentRepository {
       },
       select: {
         id: true,
+        messageId: true,
         fileName: true,
         mimeType: true,
         fileUrl: true,
@@ -87,6 +92,7 @@ export class AttachmentRepository {
 
     return attachments.map((attachment) => ({
       id: attachment.id,
+      messageId: attachment.messageId,
       name: attachment.fileName,
       mime: attachment.mimeType,
       url: attachment.fileUrl,

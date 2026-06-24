@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { NextFunction, Response } from 'express';
 import AiService from '../services/ai.service.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
@@ -87,7 +86,8 @@ export class MessageController {
       const processedFiles = await this.documentFileService.processFilesFromUrls(incomingFiles);
       await this.attachmentRepo.createMany(
         userId,
-        processedFiles.documents
+        processedFiles.documents,
+        prepared.userMessage.id
       );
 
 
@@ -108,9 +108,7 @@ export class MessageController {
         aiQuestion,
         payload.modelName as AiModelKey,
         {
-          conversationId: prepared.conversationId,
-          chatId: prepared.chatId,
-          sessionId: prepared.sessionId,
+          history: prepared.history,
           fileUploads: incomingFiles,
           signal: abortController.signal
         }
@@ -154,13 +152,11 @@ export class MessageController {
         );
       }
 
-      const assistantMessage = {
-        id: randomUUID(),
-        content: finalContent,
-        senderType: 'assistant',
-        modelName: payload.modelName,
-        createdAt: new Date(),
-      };
+      const assistantMessage = await this.messageService.saveAssistantMessage(
+        prepared.conversationId,
+        finalContent,
+        payload.modelName
+      );
 
       res.write(`event: done\n`);
       res.write(`data: ${JSON.stringify({

@@ -50,5 +50,6 @@ export const globalErrorHandler = (err: any, req: Request, res: Response, _next:
     res,
     finalMessage,
     statusCode,
+    errors,
   );
 };

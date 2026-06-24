@@ -4,20 +4,19 @@ import { ConversationMapper } from '../mapper/conversation.mapper.js';
 import AppError from '../utils/app-error.js';
 import { ErrorCode } from '../constants/error-code.js';
 import { buildCursorPaginatedResult, CursorPaginatedResult, CursorPaginationOptions } from '../utils/pagination.util.js';
-import AiService from './ai.service.js';
-import { AiModel, AiModelKey } from '../constants/ai-model.constant.js';
+import { MessageService, messageService } from './message.service.js';
 
 export class ConversationService {
     private conversationRepo: ConversationRepository;
-    private aiService: AiService;
+    private messageService: MessageService;
 
 
     constructor(
         conversationRepo: ConversationRepository,
-        aiService: AiService
+        messageService: MessageService
     ) {
         this.conversationRepo = conversationRepo;
-        this.aiService = aiService;
+        this.messageService = messageService;
 
     }
 
@@ -47,14 +46,7 @@ export class ConversationService {
         }
 
         const detail = ConversationMapper.toDetailDto(conversation);
-
-        if (conversation.chatId && conversation.sessionId) {
-            detail.messages = await this.aiService.getHistory(
-                (conversation.modelName ?? AiModel.FLOWISE_AGENT) as AiModelKey,
-                conversation.chatId,
-                conversation.sessionId
-            );
-        }
+        detail.messages = await this.messageService.getConversationMessages(conversation.id);
 
         return detail;
     }
@@ -123,5 +115,5 @@ export class ConversationService {
 
 export const conversationService = new ConversationService(
     conversationRepository,
-    new AiService()
+    messageService
 );

@@ -7,10 +7,12 @@ export default class AppError extends Error {
   readonly isOperational: boolean;
 
   constructor(error: ErrorCodeDescription, customMessage?: string) {
-    super(customMessage ?? error.message);
+    const message = customMessage ?? error.message;
+
+    super(message);
 
     this.statusCode = error.statusCode;
-    this.message = error.message;
+    this.message = message;
     this.isOperational = true;
 
     Object.setPrototypeOf(this, new.target.prototype);

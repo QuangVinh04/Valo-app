@@ -1,10 +1,12 @@
-import { MessageResponseDto } from '../../types/message.type.js';
 import { FileUploadDto } from '../../types/upload.type.js';
 
+export interface AiChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 export interface AiStreamOptions {
-  chatId?: string | null;
-  sessionId?: string | null;
-  conversationId?: string;
+  history?: AiChatMessage[];
   fileUploads?: FileUploadDto[];
   signal?: AbortSignal;
 }
@@ -24,9 +26,4 @@ export interface AiProvider {
     modelName: string,
     options: AiStreamOptions
   ): AsyncGenerator<AiStreamChunk>;
-  getHistory?(
-    chatId: string,
-    sessionId: string,
-    signal?: AbortSignal
-  ): Promise<MessageResponseDto[]>;
 }

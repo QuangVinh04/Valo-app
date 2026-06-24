@@ -1,7 +1,5 @@
 import env from '../../config/env.js';
 import { ErrorCode } from '../../constants/error-code.js';
-import { MessageResponseDto } from '../../types/message.type.js';
-import { FileUploadDto } from '../../types/upload.type.js';
 import AppError from '../../utils/app-error.js';
 import { AiProvider, AiStreamChunk, AiStreamOptions } from './ai-provider.js';
 
@@ -19,17 +17,6 @@ type FlowisePredictionResponse = {
   chatMessageId?: string;
   executionId?: string;
 };
-
-type FlowiseChatMessage = {
-  id: string;
-  role: 'userMessage' | 'apiMessage' | string; 
-  content: string;
-  chatId: string;
-  sessionId: string;
-  createdDate: string; 
-  fileUploads?: unknown;
-};
-
 
 export class FlowiseProvider implements AiProvider {
   readonly name = 'flowise';
@@ -56,13 +43,11 @@ export class FlowiseProvider implements AiProvider {
 
     try {
       const body = {
-        question,
+        question: this.buildQuestionWithHistory(question, options.history ?? []),
         streaming: true,
         ...(options.fileUploads?.length && {
           uploads: options.fileUploads,
         }),
-        ...(options.chatId && { chatId: options.chatId }),
-        ...(options.sessionId && { sessionId: options.sessionId }),
       };
 
       const response = await fetch(this.predictionUrl(), {
@@ -89,8 +74,8 @@ export class FlowiseProvider implements AiProvider {
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
-      let chatId = options.chatId ?? undefined;
-      let sessionId = options.sessionId ?? undefined;
+      let chatId: string | undefined;
+      let sessionId: string | undefined;
 
 
       let buffer = '';
@@ -184,58 +169,6 @@ export class FlowiseProvider implements AiProvider {
     }
   }
 
-  async getHistory(
-    chatId: string,
-    sessionId: string,
-    signal?: AbortSignal
-  ): Promise<MessageResponseDto[]> {
-
-    try {
-      const url = new URL(`${this.baseUrl.replace(/\/$/, '')}/api/v1/chatmessage/${this.chatflowId}`);
-      url.searchParams.set('order', 'ASC');
-      url.searchParams.set('feedback', 'true');
-      url.searchParams.set('chatId', chatId);
-      url.searchParams.set('sessionId', sessionId);
-
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${this.apiKey}`,
-          Accept: 'application/json',
-        },
-        signal,
-      });
-
-      if (!response.ok) {
-        const detail = await response.text();
-        throw new AppError(
-          ErrorCode.INTERNAL_SERVER_ERROR,
-          `Flowise history API error (${response.status}): ${detail || response.statusText}`
-        );
-      }
-
-      const messages = await response.json() as FlowiseChatMessage[];
-
-      return messages.map((message) => {
-        let senderType: MessageResponseDto['senderType'] = 'user';
-        if (message.role === 'apiMessage') {
-          senderType = 'assistant';
-        }
-        return {
-          id: message.id,
-          content: message.content,
-          senderType,
-          modelName: 'flowise-agent',
-          createdAt: new Date(message.createdDate),
-          fileUploads: this.normalizeFileUploads(message.fileUploads),
-        }
-      });
-    } catch (error) {
-      if (signal?.aborted) return [];
-      throw this.toAppError(error);
-    }
-  }
-
   private predictionUrl(): string {
     return `${this.normalizedBaseUrl()}/api/v1/prediction/${this.chatflowId}`;
   }
@@ -248,49 +181,31 @@ export class FlowiseProvider implements AiProvider {
       .replace(/\/api\/v1$/, '');
   }
 
+  private buildQuestionWithHistory(
+    question: string,
+    history: NonNullable<AiStreamOptions['history']>
+  ): string {
+    if (!history.length) return question;
 
-  private normalizeFileUploads(fileUploads: unknown): FileUploadDto[] {
-    const parsedFileUploads = typeof fileUploads === 'string'
-      ? this.parseFileUploads(fileUploads)
-      : fileUploads;
+    const chatHistory = history
+      .map((message) => {
+        const label = message.role === 'assistant'
+          ? 'Assistant'
+          : message.role === 'system'
+            ? 'System'
+            : 'User';
 
-    if (!Array.isArray(parsedFileUploads)) return [];
+        return `${label}: ${message.content}`;
+      })
+      .join('\n\n');
 
-    return parsedFileUploads
-      .filter((fileUpload): fileUpload is Record<string, unknown> => (
-        typeof fileUpload === 'object' && fileUpload !== null
-      ))
-      .flatMap((fileUpload) => {
-        const data = fileUpload.data;
-        const name = fileUpload.name;
-        const type = fileUpload.type;
-        const mime = fileUpload.mime;
-        const size = fileUpload.size;
-
-        if (
-          typeof data !== 'string'
-          || typeof name !== 'string'
-          || typeof mime !== 'string'
-        ) {
-          return [];
-        }
-
-        return [{
-          data,
-          name,
-          type: type === 'url' ? 'url' : 'url',
-          mime,
-          ...(typeof size === 'number' ? { size } : {}),
-        }];
-      });
-  }
-
-  private parseFileUploads(fileUploads: string): unknown {
-    try {
-      return JSON.parse(fileUploads);
-    } catch {
-      return [];
-    }
+    return [
+      '[CHAT HISTORY - use this as the conversation context]',
+      chatHistory,
+      '',
+      '[CURRENT USER MESSAGE]',
+      question,
+    ].join('\n');
   }
 
   private toAppError(error: unknown): AppError {
