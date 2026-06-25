@@ -18,7 +18,7 @@ export class GroqProvider implements AiProvider {
 
     this.groqClient = new Groq({
       apiKey,
-      baseURL: this.normalizedBaseUrl(),
+      baseURL: baseUrl,
     });
   }
 
@@ -56,13 +56,7 @@ export class GroqProvider implements AiProvider {
     }
   }
 
-  private normalizedBaseUrl(): string {
-    return this.baseUrl
-      .trim()
-      .replace(/,+$/, '')
-      .replace(/\/+$/, '')
-      .replace(/\/openai\/v1$/, '');
-  }
+
 
   private toAppError(error: unknown): AppError {
     if (error instanceof AppError) return error;

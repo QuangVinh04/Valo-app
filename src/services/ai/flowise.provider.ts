@@ -7,13 +7,9 @@ import { AiProvider, AiStreamChunk, AiStreamOptions } from './ai-provider.js';
 type FlowisePredictionResponse = {
   event: string;
   data?: string | {
-    chatId?: string;
-    sessionId?: string;
     chatMessageId?: string;
     executionId?: string;
   };
-  chatId?: string;
-  sessionId?: string;
   chatMessageId?: string;
   executionId?: string;
 };
@@ -73,10 +69,6 @@ export class FlowiseProvider implements AiProvider {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-
-      let chatId: string | undefined;
-      let sessionId: string | undefined;
-
 
       let buffer = '';
       let streamEnded = false;
@@ -138,15 +130,6 @@ export class FlowiseProvider implements AiProvider {
             continue;
           }
 
-          // Hứng chính xác thông tin ID từ block sự kiện 'metadata' 
-          if (parsed.event === 'metadata') {
-            if (parsed.data && typeof parsed.data === 'object') {
-              if (parsed.data.chatId) chatId = parsed.data.chatId;
-              if (parsed.data.sessionId) sessionId = parsed.data.sessionId;
-            }
-            continue;
-          }
-
           // Bắt sự kiện kết thúc hệ thống nếu cần chủ động kết thúc sớm
           if (parsed.event === 'end') {
             streamEnded = true;
@@ -159,8 +142,6 @@ export class FlowiseProvider implements AiProvider {
 
       yield {
         content: '',
-        chatId,
-        sessionId,
       };
 
     } catch (error) {

@@ -9,8 +9,6 @@ const conversationDetailSelect = {
   id: true,
   title: true,
   modelName: true,
-  chatId: true,
-  sessionId: true,
   updatedAt: true,
 } satisfies Prisma.ConversationSelect;
 
@@ -31,8 +29,6 @@ export interface CreateConversationInput {
 export interface UpdateConversationInput {
   title?: string;
   modelName?: string;
-  chatId?: string;
-  sessionId?: string;
 }
 
 export class ConversationRepository {

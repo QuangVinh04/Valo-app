@@ -18,13 +18,22 @@ export const notFoundHandler = (req: Request, res: Response) => {
 
 export const globalErrorHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
   const isZodError = err instanceof ZodError;
+  const isOperationalError = err?.isOperational === true;
   const fallbackMeta = ErrorCode.INTERNAL_SERVER_ERROR;
   const resolvedMeta = isZodError
     ? ErrorCode.VALIDATION_FAILED
-    : (err.errorKey && ErrorCode[err.errorKey]) || fallbackMeta;
+    : isOperationalError
+      ? (err.errorKey && ErrorCode[err.errorKey]) || fallbackMeta
+      : fallbackMeta;
     
-  const statusCode = isZodError ? resolvedMeta.statusCode : err.statusCode || resolvedMeta.statusCode;
-  const message = isZodError ? resolvedMeta.message : err.message || resolvedMeta.message;
+  const statusCode = isZodError || isOperationalError
+    ? err.statusCode || resolvedMeta.statusCode
+    : fallbackMeta.statusCode;
+  const message = isZodError
+    ? resolvedMeta.message
+    : isOperationalError
+      ? err.message || resolvedMeta.message
+      : fallbackMeta.message;
 
   let errors: any[] | null = null;
 

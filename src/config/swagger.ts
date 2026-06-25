@@ -241,8 +241,6 @@ export const swaggerDocument = {
           id: { type: 'string', format: 'uuid' },
           title: { type: 'string', example: 'New conversation' },
           modelName: { type: 'string', example: 'flowise-agent' },
-          chatId: { type: 'string', nullable: true },
-          sessionId: { type: 'string', nullable: true },
           userId: { type: 'string', format: 'uuid' },
           messages: {
             type: 'array',

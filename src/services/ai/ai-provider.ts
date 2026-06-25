@@ -13,8 +13,6 @@ export interface AiStreamOptions {
 
 export interface AiStreamChunk {
   content: string;
-  chatId?: string;
-  sessionId?: string;
   chatMessageId?: string;
   executionId?: string;
 }

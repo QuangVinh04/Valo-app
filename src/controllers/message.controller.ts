@@ -3,10 +3,8 @@ import AiService from '../services/ai.service.js';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { MessageService, messageService } from '../services/message.service.js';
 import { SendMessageRequestDto } from '../types/message.type.js';
-import env from '../config/env.js';
 import logger from '../utils/logger.util.js';
 import { AiModelKey } from '../constants/ai-model.constant.js';
-import { ConversationService, conversationService } from '../services/conversation.service.js';
 import {
   DocumentFileService,
   documentFileService,
@@ -20,20 +18,17 @@ import {
 
 export class MessageController {
   private readonly messageService: MessageService;
-  private readonly conversationService: ConversationService;
   private readonly documentFileService: DocumentFileService;
   private readonly attachmentRepo: AttachmentRepository;
   private readonly aiService: AiService;
 
   constructor(
     messageService: MessageService,
-    conversationService: ConversationService,
     documentFileService: DocumentFileService,
     attachmentRepo: AttachmentRepository,
     aiService: AiService
   ) {
     this.messageService = messageService;
-    this.conversationService = conversationService;
     this.documentFileService = documentFileService;
     this.attachmentRepo = attachmentRepo;
     this.aiService = aiService;
@@ -50,8 +45,6 @@ export class MessageController {
     const abortController = new AbortController();
 
     const chunks: string[] = [];  // Lưu trữ các chunk tạm thời để có thể lưu vào DB sau khi stream kết thúc
-    let chatId: string | undefined;
-    let sessionId: string | undefined;
 
     const handleClientClose = () => {
       abortController.abort();
@@ -122,10 +115,6 @@ export class MessageController {
           res.write(`event: token\n`);
           res.write(`data: ${JSON.stringify({ content: chunk.content })}\n\n`); // [INDEX]
         }
-
-        if (chunk.chatId) chatId = chunk.chatId;
-        if (chunk.sessionId) sessionId = chunk.sessionId;
-
       }
 
 
@@ -141,17 +130,6 @@ export class MessageController {
 
       const finalContent = chunks.join('');
 
-      if (chatId && sessionId) {
-        await this.conversationService.updateConversation(
-          userId,
-          prepared.conversationId,
-          {
-            chatId,
-            sessionId,
-          }
-        );
-      }
-
       const assistantMessage = await this.messageService.saveAssistantMessage(
         prepared.conversationId,
         finalContent,
@@ -161,8 +139,6 @@ export class MessageController {
       res.write(`event: done\n`);
       res.write(`data: ${JSON.stringify({
         conversationId: prepared.conversationId,
-        chatId: chatId,
-        sessionId: sessionId,
         assistantMessage,
       })}\n\n`);
 
@@ -185,20 +161,14 @@ export class MessageController {
       res.write(`event: error\n`);
       res.write(`data: ${JSON.stringify({
         message: 'Stream failed',
-        detail: env.NODE_ENV === 'production' ? undefined : this.getErrorMessage(error),
       })}\n\n`);
       res.end();
     }
   };
-
-  private getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : 'Unknown stream error';
-  }
 }
 
 export const messageController = new MessageController(
   messageService,
-  conversationService,
   documentFileService,
   attachmentRepository,
   new AiService()

@@ -1,0 +1,3 @@
+ALTER TABLE "conversations"
+DROP COLUMN IF EXISTS "chatId",
+DROP COLUMN IF EXISTS "sessionId";
