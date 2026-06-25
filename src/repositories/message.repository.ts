@@ -18,7 +18,7 @@ export class MessageRepository {
   }
 
   async create(input: CreateMessageInput) {
-    return this.prisma.message.create({
+    const message = await this.prisma.message.create({
       data: {
         conversationId: input.conversationId,
         content: input.content,
@@ -26,6 +26,13 @@ export class MessageRepository {
         modelName: input.modelName ?? null,
       },
     });
+
+    await this.prisma.conversation.update({
+      where: { id: input.conversationId },
+      data: { updatedAt: new Date() },
+    });
+
+    return message;
   }
 
   async findManyByConversationId(conversationId: string) {

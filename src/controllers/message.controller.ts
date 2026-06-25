@@ -122,8 +122,17 @@ export class MessageController {
       res.off('close', handleClientClose);
 
 
-      //Nếu client đã hủy thì không làm gì tiếp theo nữa, không lưu DB
+      // Nếu client đã hủy giữa chừng, vẫn lưu phần AI đã stream được để lịch sử không bị mất.
       if (abortController.signal.aborted) {
+        const partialContent = chunks.join('').trim();
+        if (partialContent) {
+          await this.messageService.saveAssistantMessage(
+            prepared.conversationId,
+            partialContent,
+            payload.modelName
+          );
+        }
+
         res.end();
         return;
       }
