@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//TODO: Bkav HoannTH: Thống nhất cách đặt tên cột trong DB cùng 1 định dạng: ví dụ: userId, created_at(có thể là userId, createdAt)
+// Bkav VinhTQ: Done
 model User {
   id                 String         @id @default(uuid()) @db.Uuid
   fullName           String
@@ -21,33 +23,35 @@ model User {
   updatedAt          DateTime       @updatedAt
   refreshToken       String?
   mustChangePassword Boolean        @default(true)
+  //TODO: Bkav HoanNTH: không nên để setting default, nên để mặc định null sau đó trả mặc định trong code tránh TH sau thay đổi default phải migration
+  // Bkav VinhTQ: Done
   settings           Json?
 
   @@map("users")
 }
 
 model Conversation {
-  id          String                   @id @default(uuid()) @db.Uuid
-  userId      String                   @db.Uuid
-  title       String
-  modelName   String?
-  messages    Message[]
-  createdAt   DateTime                 @default(now())
-  updatedAt   DateTime                 @updatedAt
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  title     String
+  modelName String?
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete : Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("conversations")
 }
 
 model Message {
-  id             String   @id @default(uuid()) @db.Uuid
-  conversationId String   @db.Uuid
-  senderType     String   @default("user")
+  id             String       @id @default(uuid()) @db.Uuid
+  conversationId String       @db.Uuid
+  senderType     String       @default("user")
   modelName      String?
-  content        String   @db.Text
+  content        String       @db.Text
   attachments    Attachment[]
-  createdAt      DateTime @default(now())
+  createdAt      DateTime     @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
@@ -55,31 +59,30 @@ model Message {
 }
 
 model Attachment {
-  id             String       @id @default(uuid()) @db.Uuid
-  userId         String       @db.Uuid
-  messageId      String?      @db.Uuid
-  fileName       String
-  mimeType       String
-  fileUrl        String?
-  fileSize       Int?
-  extractedText  String?
-  createdAt      DateTime     @default(now())
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  messageId     String?  @db.Uuid
+  fileName      String
+  mimeType      String
+  fileUrl       String?
+  fileSize      Int?
+  extractedText String?
+  createdAt     DateTime @default(now())
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  message      Message?      @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("conversation_attachments")
 }
 
 model Group {
-  id               String            @id @default(uuid()) @db.Uuid
-  name             String            @unique
-  description      String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  userGroups       UserGroup[]
-  groupPermissions GroupPermission[]
+  id          String      @id @default(uuid()) @db.Uuid
+  name        String      @unique
+  description String?
+  permissions String[]    @default([])
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  userGroups  UserGroup[]
 
   @@map("group")
 }
@@ -95,15 +98,4 @@ model UserGroup {
 
   @@unique([userId, groupId])
   @@map("user_group")
-}
-
-model GroupPermission {
-  id            String @id @default(uuid()) @db.Uuid
-  groupId       String @db.Uuid
-  permissionKey String
-
-  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  @@unique([groupId, permissionKey])
-  @@map("group_permission")
 }

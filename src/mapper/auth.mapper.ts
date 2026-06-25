@@ -1,25 +1,23 @@
-import type { UserAuth } from '../repositories/user.repository.js';
+import { User } from '@prisma/client';
 import { AuthResponseDto } from '../types/auth.type.js';
-import { UserSettingsDto, UserSettingsSchema } from '../types/user.type.js';
+import { UserSettingsDto } from '../types/user.type.js';
 
 
-function mapUserSettings(settings: UserAuth['settings']): UserSettingsDto {
-  const result = UserSettingsSchema.safeParse(settings);
-  return result.success ? result.data : undefined;
-}
 
+
+//TODO: Bkav HoanNTh: Rà soát lại toàn bộ mapper, chỉ trả những thông tin cần
+// Bkav VinhTQ: Done
 export class AuthMapper {
   static toAuthResponse(
-    user: UserAuth,
+    user: User,
     accessToken: string
   ): AuthResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
-      email: user.email,
       mustChangePassword: user.mustChangePassword,
       accessToken,
-      settings: mapUserSettings(user.settings),
+      settings: user.settings as UserSettingsDto, 
     };
   }
 }

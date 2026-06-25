@@ -8,6 +8,8 @@ import { groupMembersSchema, groupSchema, updateGroupSchema } from '../types/gro
 
 const router = Router();
 
+//TODO: Bkav HoanNTh: dùng singleton, cũng không tạo repo ở đây
+// Bkav VinhTQ: Done
 
 router.get(
   '/',

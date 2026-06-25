@@ -86,7 +86,8 @@ export class ConversationController {
             'Chat history cleared successfully',
             StatusCodes.OK);
     });
-
+    //TODO: Bkav HoanNTh: đặt tên hàm chưa tường minh
+    // Bkav VinhTQ: Done
     getConversations = catchAsync(async (
     req: AuthenticatedRequest,
     res: Response<ApiResponse<ConversationSummaryResponseDto[]>>,

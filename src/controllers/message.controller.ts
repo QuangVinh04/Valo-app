@@ -10,27 +10,30 @@ import {
   documentFileService,
 } from '../services/file.service.js';
 import {
-  AttachmentRepository,
-  attachmentRepository,
-} from '../repositories/attachment.repository.js';
+  AttachmentService,
+  attachmentService,
+} from '../services/attachment.service.js';
 
 
 
 export class MessageController {
   private readonly messageService: MessageService;
   private readonly documentFileService: DocumentFileService;
-  private readonly attachmentRepo: AttachmentRepository;
+  private readonly attachmentService: AttachmentService;
   private readonly aiService: AiService;
 
   constructor(
     messageService: MessageService,
     documentFileService: DocumentFileService,
-    attachmentRepo: AttachmentRepository,
+    
+    attachmentService: AttachmentService,
     aiService: AiService
   ) {
     this.messageService = messageService;
     this.documentFileService = documentFileService;
-    this.attachmentRepo = attachmentRepo;
+    //TODO: Bkav HoanNTh sai kiến trúc
+    // Bkav VinhTQ: Done 
+    this.attachmentService = attachmentService;
     this.aiService = aiService;
   }
 
@@ -77,7 +80,7 @@ export class MessageController {
 
 
       const processedFiles = await this.documentFileService.processFilesFromUrls(incomingFiles);
-      await this.attachmentRepo.createMany(
+      await this.attachmentService.saveMessageAttachments(
         userId,
         processedFiles.documents,
         prepared.userMessage.id
@@ -85,15 +88,11 @@ export class MessageController {
 
 
 
-      const promptContext = payload.fileContext || processedFiles.promptContext;
-      const aiQuestion = promptContext
-        ? [
-          prepared.userMessage.content,
-          '',
-          '[FILE TÀI LIỆU CỦA USER]',
-          promptContext,
-        ].join('\n')
-        : prepared.userMessage.content;
+      const aiQuestion = this.messageService.buildAiQuestion(
+        prepared.userMessage.content,
+        payload.fileContext,
+        processedFiles.documents
+      );
 
 
 
@@ -179,6 +178,6 @@ export class MessageController {
 export const messageController = new MessageController(
   messageService,
   documentFileService,
-  attachmentRepository,
+  attachmentService,
   new AiService()
 );

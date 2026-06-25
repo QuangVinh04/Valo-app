@@ -5,6 +5,8 @@ export interface ErrorCodeDescription {
   readonly statusCode: number;
 }
 
+//TODO: Bkav HoanNTH: các code 9009, 9001,... để làm gì? Cân nhắc bỏ các hằng số này
+// Bkav VinhTQ: Done
 export const ErrorCode = {
   INTERNAL_SERVER_ERROR: {
     message: 'Internal server error',

@@ -7,7 +7,7 @@ export const registerSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  email: z.email('Invalid email').transform((value) => value.trim().toLowerCase()),
+  username: z.email('Invalid username').transform((value) => value.trim().toLowerCase()),
   password: z.string().min(1, 'password is required')
 });
 
@@ -29,7 +29,6 @@ export interface RefreshTokenRequestDto {
 export interface AuthResponseDto {
   id: string;
   fullName: string;
-  email: string;
   mustChangePassword: boolean;
   accessToken: string;
   settings: UserSettingsDto;

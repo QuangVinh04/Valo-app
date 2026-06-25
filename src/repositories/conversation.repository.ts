@@ -39,7 +39,7 @@ export class ConversationRepository {
     this.prisma = prismaClient;
   }
 
-
+//TODO: Bkav HoanNTh: rà soát lại toàn bộ class repo, chỉ trả về các thông tin cần thiết, tránh DB phải xử lý thừa
   async create(conversation: CreateConversationInput): Promise<ConversationDetail> {
 
     return this.prisma.conversation.create({

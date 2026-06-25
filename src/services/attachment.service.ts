@@ -8,6 +8,7 @@ import type {
   AttachmentResponseDto,
   BulkDeleteAttachmentsResponseDto,
 } from '../types/upload.type.js';
+import type { ProcessedDocument } from './file.service.js';
 import {
   buildCursorPaginatedResult,
   CursorPaginatedResult,
@@ -41,6 +42,14 @@ export class AttachmentService {
     });
 
     return buildCursorPaginatedResult(attachments, pagination.limit);
+  }
+
+  async saveMessageAttachments(
+    userId: string,
+    documents: ProcessedDocument[],
+    messageId: string
+  ): Promise<number> {
+    return this.attachmentRepo.createMany(userId, documents, messageId);
   }
 
   async deleteUserAttachments(

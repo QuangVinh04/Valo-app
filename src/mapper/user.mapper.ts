@@ -1,5 +1,6 @@
-import type { UserDetail, UserListItem, UserProfile } from '../repositories/user.repository.js';
-import type { UserResponseDto, UserListItemDto, UserProfileResponseDto, UserSettingsDto } from '../types/user.type.js';
+import type { UserDetail, UserListItem } from '../repositories/user.repository.js';
+import type { UserResponseDto, UserListItemDto, UserUpdateResponseDto } from '../types/user.type.js';
+import { User } from '@prisma/client';
 
 export class UserMapper {
   static toUserResponseDto(user: UserDetail): UserResponseDto {
@@ -20,15 +21,15 @@ export class UserMapper {
     };
   }
 
-  static toUserProfileResponseDto(user: UserProfile): UserProfileResponseDto {
+  static toUserUpdateResponseDto(user: User): UserUpdateResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
       phoneNumber: user.phoneNumber,
       address: user.address,
-      settings: user.settings as unknown as UserSettingsDto,
     };
   }
+
 
   static toUserListItemDto(user: UserListItem): UserListItemDto {
     return {

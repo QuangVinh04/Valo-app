@@ -24,16 +24,6 @@ export type CreateUserRequestDto = z.infer<typeof createUserSchema>;
 export type UpdateUserRequestDto = z.infer<typeof updateUserSchema>;
 export type AssignUserGroupsRequestDto = z.infer<typeof assignUserGroupsSchema>;
 
-export const updateUserProfileSchema = z.object({
-  phoneNumber: z.string().trim().max(32, 'phoneNumber is too long').optional(),
-  address: z.string().trim().max(255, 'address is too long').optional()
-}).refine(
-  (value) => Object.keys(value).length > 0,
-  'At least one field is required'
-);
-
-export type UserProfileDto = z.infer<typeof updateUserProfileSchema>;
-
 export const UserSettingsSchema = z.object({
   theme: z.enum(['dark', 'light']),
   language: z.enum(['vi', 'en'])
@@ -75,10 +65,9 @@ export interface CreatedUserDto {
   id: string;
 }
 
-export interface UserProfileResponseDto {
+export interface UserUpdateResponseDto {
   id: string;
   fullName: string;
   phoneNumber: string | null;
   address: string | null;
-  settings: UserSettingsDto;
 }

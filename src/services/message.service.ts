@@ -5,8 +5,11 @@ import { ErrorCode } from '../constants/error-code.js';
 import AppError from '../utils/app-error.js';
 import { MessageResponseDto, SendMessageRequestDto } from '../types/message.type.js';
 import { AiChatMessage } from './ai/ai-provider.js';
+import type { ProcessedDocument } from './file.service.js';
+import { MessageMapper } from '../mapper/message.mapper.js';
 
 
+const maxPromptContextChars = 30000;
 
 export class MessageService {
   private readonly conversationRepo: ConversationRepository;
@@ -42,6 +45,9 @@ export class MessageService {
       if (!conversation) {
         throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
       }
+
+      //TODO: Bkav HoanNTh: dùng singleton
+      // Bkav VinhTQ: Done
 
       targetConversationId = conversation.id;
       const recentMessages = await this.messageRepo.findRecentByConversationId(targetConversationId, 10);
@@ -82,7 +88,7 @@ export class MessageService {
     return {
       conversationId: targetConversationId,
       history,
-      userMessage: this.toMessageResponse(userMessage),
+      userMessage: MessageMapper.toMessageResponse(userMessage),
     };
   }
 
@@ -98,47 +104,51 @@ export class MessageService {
       modelName,
     });
 
-    return this.toMessageResponse(assistantMessage);
+    return MessageMapper.toMessageResponse(assistantMessage);
+  }
+
+  buildAiQuestion(
+    question: string,
+    fileContext: string | undefined,
+    documents: ProcessedDocument[]
+  ): string {
+    const promptContext = fileContext || this.createFilePromptContext(documents);
+
+    return promptContext
+      ? [
+        question,
+        '',
+        '[FILE TÀI LIỆU CỦA USER]',
+        promptContext,
+      ].join('\n')
+      : question;
   }
 
   async getConversationMessages(conversationId: string): Promise<MessageResponseDto[]> {
     const messages = await this.messageRepo.findManyByConversationId(conversationId);
 
-    return messages.map((message) => this.toMessageResponse(message));
+    return messages.map((message) => MessageMapper.toMessageResponse(message));
   }
 
-  private toMessageResponse(message: {
-    id: string;
-    content: string;
-    senderType: string;
-    modelName: string | null;
-    createdAt: Date;
-    attachments?: Array<{
-      fileName: string;
-      mimeType: string;
-      fileUrl: string | null;
-      fileSize: number | null;
-    }>;
-  }): MessageResponseDto {
-    const fileUploads = message.attachments
-      ?.filter((attachment) => attachment.fileUrl)
-      .map((attachment) => ({
-        data: attachment.fileUrl as string,
-        name: attachment.fileName,
-        type: 'url' as const,
-        mime: attachment.mimeType,
-        ...(typeof attachment.fileSize === 'number' ? { size: attachment.fileSize } : {}),
-      }));
+  private createFilePromptContext(documents: ProcessedDocument[]): string {
+    const context = documents
+      .map((document, index) => [
+        `File ${index + 1}: ${document.name}`,
+        `MIME: ${document.mime}`,
+        ...(document.url ? [`URL: ${document.url}`] : []),
+        'Content:',
+        document.text || '[No readable text found]',
+      ].join('\n'))
+      .join('\n\n---\n\n');
 
-    return {
-      id: message.id,
-      content: message.content,
-      senderType: message.senderType,
-      modelName: message.modelName,
-      createdAt: message.createdAt,
-      ...(fileUploads?.length ? { fileUploads } : {}),
-    };
+    return this.truncateText(context, maxPromptContextChars);
   }
+
+  private truncateText(text: string, maxLength: number): string {
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength)}\n[Content truncated]`;
+  }
+
 }
 
 

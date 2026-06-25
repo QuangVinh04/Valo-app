@@ -7,7 +7,7 @@ export class GroupMapper {
             id: group.id,
             name: group.name,
             description: group.description,
-            permissions: group.groupPermissions.map((perm) => perm.permissionKey),
+            permissions: group.permissions,
             memberCount: group._count.userGroups,
             createdAt: group.createdAt,
             updatedAt: group.updatedAt

@@ -53,11 +53,11 @@ export const globalErrorHandler = (err: any, req: Request, res: Response, _next:
     errors
   });
 
-  const finalMessage = message;
 
+  //TODO: Bkav HoanNTh: chỉ trả http status code và message, không trả quá chi tiết
   return sendError(
     res,
-    finalMessage,
+    message,
     statusCode,
     errors,
   );

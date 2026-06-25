@@ -20,7 +20,8 @@ export class GroupController {
     this.groupService = groupService;
   }
 
-
+//TODO: Bkav HoanNTh: đặt tên hàm chưa tường minh
+// Bkav VinhTQ: Done
   getGroups = catchAsync(async (
     req: Request,
     res: Response<ApiResponse<GroupResponseDto[]>>,

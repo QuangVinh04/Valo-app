@@ -26,12 +26,17 @@ export class ConversationService {
      */
     async createNewConversation(userId: string, 
         payload: CreateConversationRequestDto): Promise<ConversationDetailResponseDto> {
-        const conversation = await this.conversationRepo.create({
+        //TODO: Bkav HoanNTh: để call được api này cần xác thực => lấy userId từ thông tin xác nghĩa là user đã tồn tại => không cần check user 
+        // Bkav VinhTQ: Done
+         const conversation = await this.conversationRepo.create({
                 title: payload.title,
                 modelName: payload.modelName,
                 userId: userId,
             });
 
+        /*TODO: Bkav HoanNTh: Cân nhắc chỉ trả về các thông tin cần, tránh DB phải xử lý thừa,
+           các thông tin về message có thể cần khi get nhưng không cần khi mới tạo*/
+        // Bkav VinhTQ: Done
         return ConversationMapper.toDetailDto(conversation);
     }
 
@@ -40,6 +45,8 @@ export class ConversationService {
      */
     async getConversationById(userId: string, id: string): Promise<ConversationDetailResponseDto> {
 
+        //TODO: Bkav HoanNTh: chỉ cần getByIdAndUserId và check conversation có tồn tại không để trả message lỗi
+        // Bkav VinhTQ: Done
         const conversation = await this.conversationRepo.getByIdAndUserId(id, userId);
         if (!conversation) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
@@ -59,11 +66,14 @@ export class ConversationService {
         id: string, 
         updates: UpdateConversationRequestDto): Promise<ConversationUpdateResponseDto> {
 
+        
         const conversation = await this.conversationRepo.getByIdAndUserId(id, userId);
         if (!conversation) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
         }
-        
+
+        //TODO: Bkav HoanNTh: dùng singleton
+        // Bkav VinhTQ: Done
         const updated = await this.conversationRepo.update(id, updates);
             
         return ConversationMapper.toUpdateDto(updated);
@@ -74,6 +84,9 @@ export class ConversationService {
      * Xóa một cuộc hội thoại sau khi kiểm tra nó tồn tại.
      */
     async deleteConversation(userId: string, id: string): Promise<boolean> {
+       //TODO: Bkav HoanNTh: để call được api này cần xác thực => lấy userId từ thông tin xác nghĩa là user đã tồn tại
+      // => không cần check user
+      // Bkav VinhTQ: Done
         const conversation = await this.conversationRepo.getByIdAndUserId(id, userId);
         if (!conversation) {
             throw new AppError(ErrorCode.CONVERSATION_NOT_FOUND);
@@ -90,7 +103,9 @@ export class ConversationService {
      * Xóa toàn bộ cuộc hội thoại của một người dùng hợp lệ.
      */
     async clearUserConversations(userId: string): Promise<number> {
-        
+        //TODO: Bkav HoanNTh: để call được api này cần xác thực => lấy userId từ thông tin xác nghĩa là user đã tồn tại
+      // => không cần check user
+      // Bkav VinhTQ: Done
         const result = await this.conversationRepo.deleteManyByUserId(userId);
 
         return result;
@@ -106,6 +121,8 @@ export class ConversationService {
             take: pagination.limit + 1,
         });
 
+        /*TODO: Bkav HoanNTh: Cân nhắc chỉ trả về các thông tin cần, tránh DB phải xử lý thừa*/
+        // Bkav VinhTQ: Done
         return buildCursorPaginatedResult(
             conversations.map(ConversationMapper.toSummaryDto),
             pagination.limit

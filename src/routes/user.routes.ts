@@ -2,9 +2,9 @@ import { Router } from 'express';
 
 import { userController } from '../controllers/user.controller.js';
 import { PermissionConstant } from '../constants/permission.constant.js';
-import { authenticate, authorize } from '../middlewares/auth.middleware.js';
+import { authenticate, authorize, authorizeSelfOrPermission } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
-import { assignUserGroupsSchema, createUserSchema, updateUserProfileSchema, updateUserSchema, updateUserSettingsSchema } from '../types/user.type.js';
+import { assignUserGroupsSchema, createUserSchema, updateUserSchema, updateUserSettingsSchema } from '../types/user.type.js';
 
 
 const router = Router();
@@ -23,12 +23,6 @@ router.patch(
   userController.updateUserSettings
 );
 
-router.patch(
-  '/profile',
-  authenticate,
-  validateRequest(updateUserProfileSchema),
-  userController.updateUserProfile
-);
 
 router.get(
   '/me',
@@ -57,10 +51,11 @@ router.post(
   userController.createUser
 );
 
+// TODO: check
 router.put(
   '/:id',
   authenticate,
-  authorize(PermissionConstant.USER_UPDATE.key),
+  authorizeSelfOrPermission('id', PermissionConstant.USER_UPDATE.key),
   validateRequest(updateUserSchema),
   userController.updateUser
 );

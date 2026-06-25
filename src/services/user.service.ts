@@ -2,7 +2,7 @@ import { ErrorCode } from '../constants/error-code.js';
 import { UserMapper } from '../mapper/user.mapper.js';
 import { GroupRepository, groupRepository } from '../repositories/group.repository.js';
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
-import type { AssignUserGroupsRequestDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserProfileDto, UserProfileResponseDto, UserResponseDto, UserSettingsDto } from '../types/user.type.js';
+import type { AssignUserGroupsRequestDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserResponseDto, UserSettingsDto, UserUpdateResponseDto } from '../types/user.type.js';
 import AppError from '../utils/app-error.js';
 import { hashString } from '../utils/auth.util.js';
 import { generateTemporaryPassword } from '../utils/password.util.js';
@@ -101,22 +101,28 @@ export class UserService {
     return { id: user.id };
   }
 
+  //TODO: Bkav HoanNTh: tách biệt riêng update user và add user vào group
+  // Bkav VinhTQ: Done
+
+  //TODO: Bkav HoanNTh: updateProfile khác gì với updateUser
+  // Bkav VinhTQ: Done
+
   /**
    * Cập nhật thông tin cơ bản của người dùng, không thay đổi nhóm.
    */
-  async updateUser(id: string, payload: UpdateUserRequestDto): Promise<boolean> {
+  async updateUser(id: string, payload: UpdateUserRequestDto): Promise<UserUpdateResponseDto> {
     const user = await this.userRepo.findById(id);
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
 
-    await this.userRepo.updateUser(id, {
+    const updatedUser = await this.userRepo.updateUser(id, {
       fullName: payload.fullName?.trim(),
       ...(payload.phoneNumber !== undefined ? { phoneNumber: payload.phoneNumber.trim() || null } : {}),
       ...(payload.address !== undefined ? { address: payload.address.trim() || null } : {}),
     });
 
-    return true;
+    return UserMapper.toUserUpdateResponseDto(updatedUser);
   }
 
   /**
@@ -156,22 +162,8 @@ export class UserService {
     };
   }
 
-  /**
-   * Cập nhật hồ sơ cá nhân, chuyển chuỗi rỗng thành null cho các trường tùy chọn.
-   */
-  async updateProfile(userId: string, payload: UserProfileDto): Promise<UserProfileResponseDto> {
-    const user = await this.userRepo.findById(userId);
-    if (!user) {
-      throw new AppError(ErrorCode.USER_NOT_FOUND);
-    }
 
-    const updatedUser = await this.userRepo.updateProfile(userId, {
-      ...(payload.phoneNumber !== undefined ? { phoneNumber: payload.phoneNumber.trim() || null } : {}),
-      ...(payload.address !== undefined ? { address: payload.address.trim() || null } : {})
-    });
 
-    return UserMapper.toUserProfileResponseDto(updatedUser);
-  }
 
   /**
    * Xóa người dùng sau khi xác nhận người dùng tồn tại.

@@ -16,7 +16,6 @@ export type ProcessedDocument = {
 
 export type ProcessedDocumentsResult = {
   documents: ProcessedDocument[];
-  promptContext: string;
   fileUploads: FileUploadDto[];
 };
 
@@ -29,9 +28,12 @@ export type BufferedUploadedFile = {
 
 const importModule = new Function('specifier', 'return import(specifier)') as DynamicImporter;
 const maxDocumentChars = 12000;
-const maxPromptContextChars = 30000;
 const maxFileBytes = 10 * 1024 * 1024;
 const allowedCloudinaryResourceTypes = new Set(['image', 'raw']);
+
+
+//TODO: Bkav HoanNTh: file.service.ts chỉ xử lý logic liên quan đến file, việc xử lý promt không phải ở đây
+// Bkav VinhTQ: Done
 
 export class DocumentFileService {
   /**
@@ -48,13 +50,12 @@ export class DocumentFileService {
   }
 
   /**
-   * Tải các file từ URL Cloudinary, trích xuất nội dung văn bản và tạo context cho prompt.
+   * Tải các file từ URL Cloudinary và trích xuất nội dung văn bản.
    */
   async processFilesFromUrls(fileUploads: FileUploadDto[] = []): Promise<ProcessedDocumentsResult> {
     if (!fileUploads.length) {
       return {
         documents: [],
-        promptContext: '',
         fileUploads: [],
       };
     }
@@ -95,7 +96,6 @@ export class DocumentFileService {
 
     return {
       documents,
-      promptContext: this.createPromptContext(documents),
       fileUploads, // Trả lại nguyên vẹn mảng URL ban đầu cho Controller
     };
   }
@@ -352,24 +352,7 @@ export class DocumentFileService {
   }
 
   /**
-   * Ghép nội dung các tài liệu thành prompt context dùng cho AI.
-   */
-  private createPromptContext(documents: ProcessedDocument[]): string {
-    const context = documents
-      .map((document, index) => [
-        `File ${index + 1}: ${document.name}`,
-        `MIME: ${document.mime}`,
-        ...(document.url ? [`URL: ${document.url}`] : []),
-        'Content:',
-        document.text || '[No readable text found]',
-      ].join('\n'))
-      .join('\n\n---\n\n');
-
-    return this.truncateText(context, maxPromptContextChars);
-  }
-
-  /**
-   * Cắt ngắn văn bản theo giới hạn ký tự để tránh prompt hoặc document quá dài.
+   * Cắt ngắn văn bản theo giới hạn ký tự để tránh document quá dài.
    */
   private truncateText(text: string, maxLength: number): string {
     if (text.length <= maxLength) return text;

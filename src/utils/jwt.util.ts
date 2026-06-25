@@ -20,6 +20,8 @@ const secret: Secret = env.JWT_SECRET as Secret;
 
 
 
+//TODO: Bkav HoanNTh:  access token chỉ nên chưa thông tin cơ bản của user, cần thông tin quyền thì call api
+// Bkav VinhTQ: Done
 
 export function generateAccessToken(user: UserPayload): string {
   const payload = {

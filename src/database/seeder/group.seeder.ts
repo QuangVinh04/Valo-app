@@ -12,7 +12,7 @@ export async function seedGroups(prisma: PrismaClient): Promise<void> {
         await groupRepository.createGroup({
             name: 'admin',
             description: 'Administrators with full access',
-            permissionKeys: adminPermissionKeys
+            permissions: adminPermissionKeys
         });
     }
 
@@ -29,7 +29,7 @@ export async function seedGroups(prisma: PrismaClient): Promise<void> {
         await groupRepository.createGroup({
             name: 'user',
             description: 'Regular users with limited access',
-            permissionKeys: userPermissionKeys
+            permissions: userPermissionKeys
         });
 
     }

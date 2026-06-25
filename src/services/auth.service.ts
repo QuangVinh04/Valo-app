@@ -74,18 +74,22 @@ export class AuthService {
       temporaryPassword
     });
 
+        /*TODO: Bkav HoanNTh: TH đăng ký, sau khi gửi email có chứa password, user tự đăng nhập lại
+       không trả về token và thông tin chi tiết của user sau khi đăng ký, chỉ trả message để user biết cần check email*/
+
+       // Bkav VinhTQ: Done
     return true;
   }
 
   /**
-   * Xác thực email/mật khẩu, phát access token và lưu refresh token đã hash.
+   * Xác thực username/mật khẩu, phát access token và lưu refresh token đã hash.
    */
   async loginUser(payload: LoginRequestDto): Promise<{
     authResponse: AuthResponseDto;
     refreshToken: string;
   }> {
-    const email = payload.email.trim().toLowerCase();
-    const user = await this.userRepository.findAuthByEmail(email);
+    const username = payload.username.trim().toLowerCase();
+    const user = await this.userRepository.findByEmail(username);
 
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
@@ -111,6 +115,8 @@ export class AuthService {
       refreshToken: hashedRefreshToken,
     });
 
+    //TODO: Bkav HoanNTh: Response login không trả về quá nhiều thông tin như thế này, sau cần có thông tin gì thì call API để lấy
+    // Bkav VinhTQ: Done
     return {
       authResponse: AuthMapper.toAuthResponse(user, accessToken),
       refreshToken
@@ -128,7 +134,9 @@ export class AuthService {
     }
     const decoded = verifyRefreshToken(token);
 
-    const user = await this.userRepository.findAuthById(decoded.userId);
+    //TODO: Bkav HoanNTh: tại sao cần call findByIdForAuth mà không phải findById để check user tồn tại hay không?
+    // Bkav VinhTQ: Done
+    const user = await this.userRepository.findById(decoded.userId);
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
@@ -168,7 +176,7 @@ export class AuthService {
    * Đổi mật khẩu, kiểm tra mật khẩu hiện tại, xác nhận mật khẩu mới và thu hồi refresh token.
    */
   async changePassword(userId: string, payload: ChangePasswordRequestDto): Promise<void> {
-    const user = await this.userRepository.findAuthById(userId);
+    const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }

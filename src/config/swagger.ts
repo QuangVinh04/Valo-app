@@ -70,9 +70,9 @@ export const swaggerDocument = {
       },
       LoginRequest: {
         type: 'object',
-        required: ['email', 'password'],
+        required: ['username', 'password'],
         properties: {
-          email: { type: 'string', format: 'email', example: 'user@example.com' },
+          username: { type: 'string', format: 'email', example: 'user@example.com' },
           password: { type: 'string', example: 'TemporaryPassword123!' },
         },
       },
@@ -358,7 +358,7 @@ export const swaggerDocument = {
     [`${BASE_AUTH_PATH}/login`]: {
       post: {
         tags: ['Auth'],
-        summary: 'Login with email and password',
+        summary: 'Login with username and password',
         requestBody: {
           required: true,
           content: {

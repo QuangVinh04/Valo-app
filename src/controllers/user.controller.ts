@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { UserService, userService } from '../services/user.service.js';
-import type { AssignUserGroupsRequestDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserProfileDto, UserProfileResponseDto, UserResponseDto, UserSettingsDto } from '../types/user.type.js';
+import type { AssignUserGroupsRequestDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserResponseDto, UserSettingsDto, UserUpdateResponseDto } from '../types/user.type.js';
 import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
 import catchAsync from '../utils/catch-async.js';
 import { getPaginationOptions } from '../utils/pagination.util.js';
@@ -53,6 +53,8 @@ export class UserController {
     return sendSuccess(res, result, 'User found', StatusCodes.OK);
   });
 
+  //TODO: Bkav HoanNTh: đặt lại tên hàm
+  // Bkav VinhTQ: Done
   getCurrentUser = catchAsync(async (
     req: AuthenticatedRequest,
     res: Response<ApiResponse<UserResponseDto>>,
@@ -74,7 +76,7 @@ export class UserController {
 
   updateUser = catchAsync(async (
     req: Request,
-    res: Response<ApiResponse<boolean>>,
+    res: Response<ApiResponse<UserUpdateResponseDto>>,
     _next: NextFunction
   ) => {
     const payload = req.body as UpdateUserRequestDto;
@@ -104,15 +106,7 @@ export class UserController {
     return sendSuccess(res, result, 'User settings updated', StatusCodes.OK);
   });
 
-  updateUserProfile = catchAsync(async (
-    req: AuthenticatedRequest,
-    res: Response<ApiResponse<UserProfileResponseDto>>,
-    _next: NextFunction
-  ) => {
-    const payload = req.body as UserProfileDto;
-    const result = await this.userService.updateProfile(req.user.userId, payload);
-    return sendSuccess(res, result, 'User profile updated', StatusCodes.OK);
-  });
+
 
   deleteUser = catchAsync(async (
     req: Request,
@@ -124,6 +118,8 @@ export class UserController {
     return sendSuccess(res, null, 'User deleted', StatusCodes.OK);
   });
 
+   //TODO: Bkav HoanNTh: đặt lại tên hàm
+   // Bkav VinhTQ: Done
   deleteCurrentUser = catchAsync(async (
     req: AuthenticatedRequest,
     res: Response<ApiResponse<null>>,

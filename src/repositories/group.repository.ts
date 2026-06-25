@@ -7,13 +7,9 @@ const groupDetailSelect = {
   id: true,
   name: true,
   description: true,
+  permissions: true,
   createdAt: true,
   updatedAt: true,
-  groupPermissions: {
-    select: {
-      permissionKey: true,
-    },
-  },
   _count: {
     select: {
       userGroups: true,
@@ -71,13 +67,13 @@ export type GroupIdentity = Prisma.GroupGetPayload<{
 export interface CreateGroupInput {
   name: string;
   description?: string;
-  permissionKeys?: readonly string[];
+  permissions?: readonly string[];
 }
 
 export interface UpdateGroupInput {
   name?: string;
   description?: string;
-  permissionKeys?: readonly string[];
+  permissions?: readonly string[];
 }
 
 export class GroupRepository {
@@ -149,11 +145,7 @@ export class GroupRepository {
       data: {
         name: input.name,
         description: input.description,
-        groupPermissions: {
-          create: (input.permissionKeys ?? []).map((permissionKey) => ({
-            permissionKey,
-          })),
-        },
+        permissions: [...(input.permissions ?? [])],
       },
       select: groupIdSelect,
     });
@@ -161,33 +153,21 @@ export class GroupRepository {
 
   async updateGroup(
     id: string,
-    input: Pick<UpdateGroupInput, 'name' | 'description'>
+    input: UpdateGroupInput
   ): Promise<void> {
     await this.prisma.group.update({
       where: { id },
-      data: input,
+      data: {
+        name: input.name,
+        description: input.description,
+        ...(input.permissions !== undefined ? { permissions: [...input.permissions] } : {}),
+      },
     });
   }
 
   async deleteGroup(id: string): Promise<void> {
     await this.prisma.group.delete({
       where: { id },
-    });
-  }
-
-  async deletePermissions(groupId: string) {
-    return this.prisma.groupPermission.deleteMany({
-      where: { groupId },
-    });
-  }
-
-  async createPermissions(groupId: string, permissionKeys: readonly string[]) {
-    return this.prisma.groupPermission.createMany({
-      data: permissionKeys.map((permissionKey) => ({
-        groupId,
-        permissionKey,
-      })),
-      skipDuplicates: true,
     });
   }
 
