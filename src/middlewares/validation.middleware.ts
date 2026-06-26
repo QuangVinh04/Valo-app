@@ -9,12 +9,8 @@ export const validateRequest = (schema: ZodSchema<unknown>) => {
     res: Response, 
     next: NextFunction
   ): void => {
+    req.body = schema.parse(req.body); // Gán dữ liệu đã được xác thực vào req.body
 
-    const validationResult = schema.parse(req.body);
-
-    req.body = validationResult; // Gán dữ liệu đã được xác thực vào req.body
-    
     next();
-
   };
 };

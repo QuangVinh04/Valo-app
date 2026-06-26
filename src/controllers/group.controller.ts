@@ -7,7 +7,9 @@ import type {
   GroupResponseDto,
   UpdateGroupRequestDto,
   GroupMemberDto,
-  CreatedGroupDto
+  CreatedGroupDto,
+  GroupListItemDto,
+  UpdateGroupResponseDto
 } from '../types/group.type.js';
 import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
 import catchAsync from '../utils/catch-async.js';
@@ -20,92 +22,77 @@ export class GroupController {
     this.groupService = groupService;
   }
 
-//TODO: Bkav HoanNTh: đặt tên hàm chưa tường minh
-// Bkav VinhTQ: Done
-  getGroups = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<GroupResponseDto[]>>,
-    _next: NextFunction
-  ) => {
-    const result = await this.groupService.getGroups(getPaginationOptions(req.query));
-    return sendSuccess(res, result.data, 'Groups found', StatusCodes.OK, result.meta);
-  });
+  //TODO: Bkav HoanNTh: đặt tên hàm chưa tường minh
+  //FIXME: Bkav VinhTQ: Done
+  getGroups = catchAsync(
+    async (req: Request, res: Response<ApiResponse<GroupListItemDto[]>>, _next: NextFunction) => {
+      const result = await this.groupService.getGroups(getPaginationOptions(req.query));
+      return sendSuccess(res, result.data, 'Groups found', StatusCodes.OK, result.meta);
+    }
+  );
 
-  getGroupById = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<GroupResponseDto>>,
-    _next: NextFunction
-  ) => {
-    const id = req.params.id.toString();
-    const result = await this.groupService.getGroupById(id);
-    return sendSuccess(res, result, 'Group found', StatusCodes.OK);
-  });
+  getGroupById = catchAsync(
+    async (req: Request, res: Response<ApiResponse<GroupResponseDto>>, _next: NextFunction) => {
+      const id = req.params.id.toString();
+      const result = await this.groupService.getGroupById(id);
+      return sendSuccess(res, result, 'Group found', StatusCodes.OK);
+    }
+  );
 
-  createGroup = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<CreatedGroupDto>>,
-    _next: NextFunction
-  ) => {
-    const payload = req.body as GroupRequestDto;
-    const result = await this.groupService.createGroup(payload);
-    return sendSuccess(res, result, 'Group created', StatusCodes.CREATED);
-  });
+  createGroup = catchAsync(
+    async (req: Request, res: Response<ApiResponse<CreatedGroupDto>>, _next: NextFunction) => {
+      const payload = req.body as GroupRequestDto;
+      const result = await this.groupService.createGroup(payload);
+      return sendSuccess(res, result, 'Group created', StatusCodes.CREATED);
+    }
+  );
 
-  updateGroup = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<GroupResponseDto>>,
-    _next: NextFunction
-  ) => {
-    const payload = req.body as UpdateGroupRequestDto;
-    const id = req.params.id.toString();
-    const result = await this.groupService.updateGroup(id, payload);
-    return sendSuccess(res, result, 'Group updated', StatusCodes.OK);
-  });
+  updateGroup = catchAsync(
+    async (
+      req: Request,
+      res: Response<ApiResponse<UpdateGroupResponseDto>>,
+      _next: NextFunction
+    ) => {
+      const payload = req.body as UpdateGroupRequestDto;
+      const id = req.params.id.toString();
+      const result = await this.groupService.updateGroup(id, payload);
+      return sendSuccess(res, result, 'Group updated', StatusCodes.OK);
+    }
+  );
 
-  deleteGroup = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<null>>,
-    _next: NextFunction
-  ) => {
-    const id = req.params.id.toString();
-    await this.groupService.deleteGroup(id);
-    return sendSuccess(res, null, 'Group deleted', StatusCodes.OK);
-  });
+  deleteGroup = catchAsync(
+    async (req: Request, res: Response<ApiResponse<null>>, _next: NextFunction) => {
+      const id = req.params.id.toString();
+      await this.groupService.deleteGroup(id);
+      return sendSuccess(res, null, 'Group deleted', StatusCodes.OK);
+    }
+  );
 
-  getGroupMembers = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<GroupMemberDto>>,
-    _next: NextFunction
-  ) => {
-    const id = req.params.id.toString();
-    const result = await this.groupService.getGroupMembers(id);
-    return sendSuccess(res, result, 'Group members found', StatusCodes.OK);
-  });
+  getGroupMembers = catchAsync(
+    async (req: Request, res: Response<ApiResponse<GroupMemberDto>>, _next: NextFunction) => {
+      const id = req.params.id.toString();
+      const result = await this.groupService.getGroupMembers(id);
+      return sendSuccess(res, result, 'Group members found', StatusCodes.OK);
+    }
+  );
 
+  addGroupMembers = catchAsync(
+    async (req: Request, res: Response<ApiResponse<GroupMemberDto>>, _next: NextFunction) => {
+      const payload = req.body as GroupMembersRequestDto;
+      const id = req.params.id.toString();
+      const result = await this.groupService.addMembers(id, payload.userIds);
+      return sendSuccess(res, result, 'Members added to group', StatusCodes.OK);
+    }
+  );
 
-  addGroupMembers = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<GroupMemberDto>>,
-    _next: NextFunction
-  ) => {
-    const payload = req.body as GroupMembersRequestDto;
-    const id = req.params.id.toString();
-    const result = await this.groupService.addMembers(id, payload.userIds);
-    return sendSuccess(res, result, 'Members added to group', StatusCodes.OK);
-  });
-
-
-
-  removeGroupMembers = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<GroupMemberDto>>,
-    _next: NextFunction
-  ) => {
-    const payload = req.body as GroupMembersRequestDto;
-    const id = req.params.id.toString();
-    const result = await this.groupService.removeMembers(id, payload.userIds);
-    return sendSuccess(res, result, 'Members removed from group', StatusCodes.OK);
-  });
+  removeGroupMembers = catchAsync(
+    async (req: Request, res: Response<ApiResponse<GroupMemberDto>>, _next: NextFunction) => {
+      const payload = req.body as GroupMembersRequestDto;
+      const id = req.params.id.toString();
+      const result = await this.groupService.removeMembers(id, payload.userIds);
+      return sendSuccess(res, result, 'Members removed from group', StatusCodes.OK);
+    }
+  );
 }
 
 export const groupController = new GroupController(groupService);

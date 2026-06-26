@@ -25,10 +25,11 @@ export const globalErrorHandler = (err: any, req: Request, res: Response, _next:
     : isOperationalError
       ? (err.errorKey && ErrorCode[err.errorKey]) || fallbackMeta
       : fallbackMeta;
-    
-  const statusCode = isZodError || isOperationalError
-    ? err.statusCode || resolvedMeta.statusCode
-    : fallbackMeta.statusCode;
+
+  const statusCode =
+    isZodError || isOperationalError
+      ? err.statusCode || resolvedMeta.statusCode
+      : fallbackMeta.statusCode;
   const message = isZodError
     ? resolvedMeta.message
     : isOperationalError
@@ -53,12 +54,7 @@ export const globalErrorHandler = (err: any, req: Request, res: Response, _next:
     errors
   });
 
-
   //TODO: Bkav HoanNTh: chỉ trả http status code và message, không trả quá chi tiết
-  return sendError(
-    res,
-    message,
-    statusCode,
-    errors,
-  );
+  //FIXME: Bkav VinhTQ: Done
+  return sendError(res, message, statusCode);
 };

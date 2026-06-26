@@ -1,5 +1,6 @@
+import { Group } from '@prisma/client/wasm';
 import type { GroupDetail, GroupListItem, GroupMembers } from '../repositories/group.repository.js';
-import type { GroupListItemDto, GroupMemberDto, GroupResponseDto } from '../types/group.type.js';
+import type { GroupListItemDto, GroupMemberDto, GroupResponseDto, UpdateGroupResponseDto } from '../types/group.type.js';
 
 export class GroupMapper {
     static toGroupResponseDto(group: GroupDetail): GroupResponseDto {
@@ -9,8 +10,15 @@ export class GroupMapper {
             description: group.description,
             permissions: group.permissions,
             memberCount: group._count.userGroups,
-            createdAt: group.createdAt,
-            updatedAt: group.updatedAt
+        };
+    }
+
+    static toUpdateGroupResponseDto(group: Group): UpdateGroupResponseDto {
+        return {
+            id: group.id,
+            name: group.name,
+            description: group.description,
+            permissions: group.permissions
         };
     }
 

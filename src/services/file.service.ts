@@ -33,9 +33,9 @@ const allowedCloudinaryResourceTypes = new Set(['image', 'raw']);
 
 
 //TODO: Bkav HoanNTh: file.service.ts chỉ xử lý logic liên quan đến file, việc xử lý promt không phải ở đây
-// Bkav VinhTQ: Done
+//FIXME: Bkav VinhTQ: Done
 
-export class DocumentFileService {
+export class FileService {
   /**
    * Khởi tạo cấu hình Cloudinary nếu server có đủ thông tin xác thực.
    */
@@ -360,4 +360,3 @@ export class DocumentFileService {
   }
 }
 
-export const documentFileService = new DocumentFileService();

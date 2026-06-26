@@ -51,7 +51,7 @@ router.post(
   userController.createUser
 );
 
-// TODO: check
+
 router.put(
   '/:id',
   authenticate,

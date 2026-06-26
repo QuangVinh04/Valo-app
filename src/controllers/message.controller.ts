@@ -6,8 +6,7 @@ import { SendMessageRequestDto } from '../types/message.type.js';
 import logger from '../utils/logger.util.js';
 import { AiModelKey } from '../constants/ai-model.constant.js';
 import {
-  DocumentFileService,
-  documentFileService,
+  FileService,
 } from '../services/file.service.js';
 import {
   AttachmentService,
@@ -18,21 +17,21 @@ import {
 
 export class MessageController {
   private readonly messageService: MessageService;
-  private readonly documentFileService: DocumentFileService;
+  private readonly fileService: FileService;
   private readonly attachmentService: AttachmentService;
   private readonly aiService: AiService;
 
   constructor(
     messageService: MessageService,
-    documentFileService: DocumentFileService,
+    fileService: FileService,
     
     attachmentService: AttachmentService,
     aiService: AiService
   ) {
     this.messageService = messageService;
-    this.documentFileService = documentFileService;
+    this.fileService = fileService;
     //TODO: Bkav HoanNTh sai kiến trúc
-    // Bkav VinhTQ: Done 
+    //FIXME: Bkav VinhTQ: Done
     this.attachmentService = attachmentService;
     this.aiService = aiService;
   }
@@ -54,7 +53,6 @@ export class MessageController {
     };
 
     try {
-
       res.on('close', handleClientClose);
 
       const incomingFiles = payload.fileUploads ?? [];
@@ -63,30 +61,31 @@ export class MessageController {
         userId,
         payload,
         conversationId
-      )
+      );
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
       res.flushHeaders();
 
       res.write(`event: ready\n`);
-      res.write(`data: ${JSON.stringify({
-        conversationId: prepared.conversationId,
-        userMessage: {
-          ...prepared.userMessage,
-          fileUploads: incomingFiles,
-        },
-      })}\n\n`);
+      res.write(
+        `data: ${JSON.stringify({
+          conversationId: prepared.conversationId,
+          userMessage: {
+            ...prepared.userMessage,
+            fileUploads: incomingFiles
+          }
+        })}\n\n`
+      );
 
-
-      const processedFiles = await this.documentFileService.processFilesFromUrls(incomingFiles);
+      const processedFiles = await this.fileService.processFilesFromUrls(incomingFiles);
+      //TODO: Bkav HoanNTh: controller gọi thẳng repo, sai kiến trúc Controller → Service → Repository
+      //FIXME: Bkav VinhTQ: Done
       await this.attachmentService.saveMessageAttachments(
         userId,
         processedFiles.documents,
         prepared.userMessage.id
       );
-
-
 
       const aiQuestion = this.messageService.buildAiQuestion(
         prepared.userMessage.content,
@@ -94,17 +93,11 @@ export class MessageController {
         processedFiles.documents
       );
 
-
-
-      for await (const chunk of this.aiService.stream(
-        aiQuestion,
-        payload.modelName as AiModelKey,
-        {
-          history: prepared.history,
-          fileUploads: incomingFiles,
-          signal: abortController.signal
-        }
-      )) {
+      for await (const chunk of this.aiService.stream(aiQuestion, payload.modelName as AiModelKey, {
+        history: prepared.history,
+        fileUploads: incomingFiles,
+        signal: abortController.signal
+      })) {
         // Nếu client đã hủy giữa chừng, dừng vòng lặp ngay
         if (abortController.signal.aborted) break;
 
@@ -116,10 +109,8 @@ export class MessageController {
         }
       }
 
-
       // Go bo lang nghe su kien de tranh memory leak neu client da huy
       res.off('close', handleClientClose);
-
 
       // Nếu client đã hủy giữa chừng, vẫn lưu phần AI đã stream được để lịch sử không bị mất.
       if (abortController.signal.aborted) {
@@ -145,14 +136,14 @@ export class MessageController {
       );
 
       res.write(`event: done\n`);
-      res.write(`data: ${JSON.stringify({
-        conversationId: prepared.conversationId,
-        assistantMessage,
-      })}\n\n`);
-
+      res.write(
+        `data: ${JSON.stringify({
+          conversationId: prepared.conversationId,
+          assistantMessage
+        })}\n\n`
+      );
 
       res.end();
-
     } catch (error) {
       logger.error('Message stream failed', {
         error,
@@ -177,7 +168,7 @@ export class MessageController {
 
 export const messageController = new MessageController(
   messageService,
-  documentFileService,
+  new FileService(),
   attachmentService,
   new AiService()
 );

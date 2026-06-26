@@ -1,5 +1,5 @@
 import { GroupRepository, groupRepository } from '../repositories/group.repository.js';
-import { CreatedGroupDto, GroupMemberDto, GroupRequestDto, GroupResponseDto, UpdateGroupRequestDto } from '../types/group.type.js';
+import { CreatedGroupDto, GroupMemberDto, GroupRequestDto, GroupResponseDto, UpdateGroupRequestDto, UpdateGroupResponseDto } from '../types/group.type.js';
 import { GroupMapper } from '../mapper/group.mapper.js';
 import AppError from '../utils/app-error.js';
 import { ErrorCode } from '../constants/error-code.js';
@@ -69,13 +69,12 @@ export class GroupService {
       throw new AppError(ErrorCode.GROUP_NAME_ALREADY_IN_USE);
     }
     //TODO: Bkav HoanNTh: dùng singleton
-    //Bkav VinhTQ: Done
+    //FIXME: Bkav VinhTQ: Done
     const newGroup = await this.groupRepository.createGroup({
       name,
       description: payload.description?.trim(),
       permissions: this.normalizePermissionKeys(payload.permissions)
     });
-
 
     return { id: newGroup.id };
   }
@@ -83,7 +82,7 @@ export class GroupService {
   /**
    * Cập nhật thông tin nhóm và thay thế danh sách quyền nếu payload có truyền permissions.
    */
-  async updateGroup(id: string, payload: UpdateGroupRequestDto): Promise<boolean> {
+  async updateGroup(id: string, payload: UpdateGroupRequestDto): Promise<UpdateGroupResponseDto> {
     const group = await this.groupRepository.findById(id);
 
     if (!group) {
@@ -98,19 +97,20 @@ export class GroupService {
       }
     }
 
-    const permissions = payload.permissions !== undefined
-      ? this.normalizePermissionKeys(payload.permissions)
-      : undefined;
+    const permissions =
+      payload.permissions !== undefined
+        ? this.normalizePermissionKeys(payload.permissions)
+        : undefined;
 
-      //TODO: L2: Bkav HoanNTh: Tại sao xóa xong tạo lại mà không phải update và phải gọi xử lý DB 3 lần
-      // Bkav VinhTQ: Done
-    await this.groupRepository.updateGroup(id, {
+    //TODO: L2: Bkav HoanNTh: Tại sao xóa xong tạo lại mà không phải update và phải gọi xử lý DB 3 lần
+    //FIXME: Bkav VinhTQ: Done
+    const updatedGroup = await this.groupRepository.updateGroup(id, {
       name,
       description: payload.description?.trim(),
-      permissions,
+      permissions
     });
 
-    return true;
+    return GroupMapper.toUpdateGroupResponseDto(updatedGroup);
   }
 
 
@@ -145,7 +145,7 @@ export class GroupService {
    */
   async addMembers(groupId: string, userIds: string[]): Promise<GroupMemberDto> {
     //TODO: Bkav HoanNTh: dùng singleton
-    // Bkav VinhTQ: Done
+    //FIXME: Bkav VinhTQ: Done
     const normalizedUserIds = this.normalizeIds(userIds);
 
     const group = await this.groupRepository.findById(groupId);
@@ -160,7 +160,7 @@ export class GroupService {
     const result = await this.groupRepository.findMembersById(groupId);
 
     //TODO: trường hợp nào result undefine?
-    // Bkav VinhTQ: Done
+    //FIXME: Bkav VinhTQ: Done
 
     return GroupMapper.toGroupMemberResponseDto(result);
   }
@@ -182,7 +182,7 @@ export class GroupService {
       await this.groupRepository.removeMembers(groupId, normalizedUserIds);
 
       const result = await this.groupRepository.findMembersById(groupId);
-    
+
 
     return GroupMapper.toGroupMemberResponseDto(result);
   }

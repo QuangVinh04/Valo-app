@@ -26,9 +26,17 @@ export interface GroupResponseDto {
     description: string | null;
     permissions: string[];
     memberCount: number;
-    createdAt: Date;
-    updatedAt: Date;
 }
+
+export interface UpdateGroupResponseDto {
+    id: string;
+    name: string;
+    description: string | null;
+    permissions: string[];
+}
+
+
+
 
 export interface GroupListItemDto {
     id: string;

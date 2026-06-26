@@ -7,7 +7,7 @@ import { verifyToken } from '../utils/jwt.util.js';
 
 
 //TODO: Bkav HoanNTh: Không dùng singleton?
-// Bkav VinhTQ: Done
+//FIXME: Bkav VinhTQ: Done
 
 export interface AuthenticatedRequest extends Request {
   user: {

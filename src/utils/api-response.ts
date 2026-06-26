@@ -10,10 +10,6 @@ export interface ResponseMeta {
   hasNextPage?: boolean;
 }
 
-export interface ResponseErrorDetail {
-  field?: string;    
-  message: string;   
-}
 
 
 export interface ApiResponse<T> {
@@ -21,7 +17,6 @@ export interface ApiResponse<T> {
   message: string;
   data: T | null;
   code?: number;
-  errors?: ResponseErrorDetail[] | null; // Danh sách lỗi chi tiết (nếu có)
   meta?: ResponseMeta | null; // Thông tin phân trang (nếu có)
 }
 
@@ -45,12 +40,10 @@ export const sendError = (
   res: Response,
   message = 'Internal server error',
   statusCode = 500,
-  errors: ResponseErrorDetail[] | null = null,
 ): Response<ApiResponse<null>> => {
   return res.status(statusCode).json({
     success: false,
     message,
-    ...(errors && { errors })
   });
 
 };

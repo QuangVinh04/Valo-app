@@ -28,7 +28,7 @@ export class GroqProvider implements AiProvider {
     options: AiStreamOptions
   ): AsyncGenerator<AiStreamChunk> {
     //TODO: Bkav HoanNTh: không cần check, contructor đã check rồi
-    // Bkav VinhTQ: Done
+    //FIXME: Bkav VinhTQ: Done
 
     try {
       const stream = await this.groqClient.chat.completions.create(

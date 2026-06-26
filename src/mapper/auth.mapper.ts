@@ -6,7 +6,7 @@ import { UserSettingsDto } from '../types/user.type.js';
 
 
 //TODO: Bkav HoanNTh: Rà soát lại toàn bộ mapper, chỉ trả những thông tin cần
-// Bkav VinhTQ: Done
+//FIXME: Bkav VinhTQ: Done
 export class AuthMapper {
   static toAuthResponse(
     user: User,

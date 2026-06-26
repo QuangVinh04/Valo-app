@@ -8,7 +8,7 @@ datasource db {
 }
 
 //TODO: Bkav HoannTH: Thống nhất cách đặt tên cột trong DB cùng 1 định dạng: ví dụ: userId, created_at(có thể là userId, createdAt)
-// Bkav VinhTQ: Done
+//FIXME: Bkav VinhTQ: Done
 model User {
   id                 String         @id @default(uuid()) @db.Uuid
   fullName           String
@@ -24,7 +24,7 @@ model User {
   refreshToken       String?
   mustChangePassword Boolean        @default(true)
   //TODO: Bkav HoanNTH: không nên để setting default, nên để mặc định null sau đó trả mặc định trong code tránh TH sau thay đổi default phải migration
-  // Bkav VinhTQ: Done
+  //FIXME: Bkav VinhTQ: Done
   settings           Json?
 
   @@map("users")

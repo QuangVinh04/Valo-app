@@ -1,4 +1,4 @@
-import type { Prisma, PrismaClient } from '@prisma/client';
+import type { Group, Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../config/prisma.js';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
@@ -8,8 +8,6 @@ const groupDetailSelect = {
   name: true,
   description: true,
   permissions: true,
-  createdAt: true,
-  updatedAt: true,
   _count: {
     select: {
       userGroups: true,
@@ -154,8 +152,8 @@ export class GroupRepository {
   async updateGroup(
     id: string,
     input: UpdateGroupInput
-  ): Promise<void> {
-    await this.prisma.group.update({
+  ): Promise<Group> {
+    return this.prisma.group.update({
       where: { id },
       data: {
         name: input.name,

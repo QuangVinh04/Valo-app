@@ -8,7 +8,7 @@ import {
   RegisterRequestDto,
 } from '../types/auth.type.js';
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
-import { groupRepository, GroupRepository } from '../repositories/group.repository.js';
+import { GroupRepository } from '../repositories/group.repository.js';
 import AppError from '../utils/app-error.js';
 import { generateAccessToken, verifyRefreshToken, generateRefreshToken } from '../utils/jwt.util.js';
 import { AuthMapper } from '../mapper/auth.mapper.js';
@@ -21,15 +21,12 @@ import { hashString, compareString } from '../utils/auth.util.js';
 
 export class AuthService {
   private readonly userRepository: UserRepository;
-  private readonly groupRepository: GroupRepository;
   private readonly emailService: EmailService;
 
   constructor(
     userRepository: UserRepository,
-    groupRepository: GroupRepository,
     emailService = new EmailService()) {
     this.userRepository = userRepository;
-    this.groupRepository = groupRepository;
     this.emailService = emailService;
   }
 
@@ -40,8 +37,9 @@ export class AuthService {
     const email = payload.email.trim().toLowerCase();
     const temporaryPassword = generateTemporaryPassword();
 
-
     const result = await withTransaction(async (tx) => {
+      //TODO: Bkav HoanNTh: dùng singleton
+      //FIXME: Bkav VinhTQ: Các repository bắt buộc phải được khởi tạo với tx để toàn bộ query chạy cùng transaction
       const userRepo = new UserRepository(tx);
       const groupRepo = new GroupRepository(tx);
 
@@ -61,8 +59,7 @@ export class AuthService {
         fullName: payload.fullName.trim(),
         email,
         password,
-        mustChangePassword: true,
-
+        mustChangePassword: true
       });
       await userRepo.assignGroups(user.id, [groupDefault.id]);
       return user;
@@ -74,10 +71,9 @@ export class AuthService {
       temporaryPassword
     });
 
-        /*TODO: Bkav HoanNTh: TH đăng ký, sau khi gửi email có chứa password, user tự đăng nhập lại
+    /*TODO: Bkav HoanNTh: TH đăng ký, sau khi gửi email có chứa password, user tự đăng nhập lại
        không trả về token và thông tin chi tiết của user sau khi đăng ký, chỉ trả message để user biết cần check email*/
-
-       // Bkav VinhTQ: Done
+    // FIXME: Bkav VinhTQ: Done
     return true;
   }
 
@@ -101,22 +97,22 @@ export class AuthService {
     }
 
     const accessToken = generateAccessToken({
-      id: user.id,
+      id: user.id
     });
 
     const refreshToken = generateRefreshToken({
-      id: user.id,
+      id: user.id
     });
 
     const hashedRefreshToken = await hashString(refreshToken);
 
     await this.userRepository.saveRefreshToken({
       userId: user.id,
-      refreshToken: hashedRefreshToken,
+      refreshToken: hashedRefreshToken
     });
 
     //TODO: Bkav HoanNTh: Response login không trả về quá nhiều thông tin như thế này, sau cần có thông tin gì thì call API để lấy
-    // Bkav VinhTQ: Done
+    //FIXME: Bkav VinhTQ: Done
     return {
       authResponse: AuthMapper.toAuthResponse(user, accessToken),
       refreshToken
@@ -135,7 +131,7 @@ export class AuthService {
     const decoded = verifyRefreshToken(token);
 
     //TODO: Bkav HoanNTh: tại sao cần call findByIdForAuth mà không phải findById để check user tồn tại hay không?
-    // Bkav VinhTQ: Done
+    //FIXME: Bkav VinhTQ: Done
     const user = await this.userRepository.findById(decoded.userId);
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
@@ -154,7 +150,7 @@ export class AuthService {
     }
 
     const accessToken = generateAccessToken({
-      id: user.id,
+      id: user.id
     });
 
     return {
@@ -222,4 +218,4 @@ export class AuthService {
   }
 }
 
-export const authService = new AuthService(userRepository, groupRepository);
+export const authService = new AuthService(userRepository);
