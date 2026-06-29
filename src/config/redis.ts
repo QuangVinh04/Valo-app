@@ -3,51 +3,70 @@ import logger from '../utils/logger.util.js';
 
 let redisClient: Redis | null = null;
 
-/**
- * Khởi tạo kết nối tới Redis Server
- */
+const REDIS_CONNECT_TIMEOUT_MS = 10000;
+
 export const connectRedis = async (url: string): Promise<Redis> => {
   if (!url) {
     throw new Error('REDIS_URL is required');
   }
 
-  // Nếu đã khởi tạo trước đó và trạng thái khỏe mạnh, trả về luôn (Singleton Pattern)
   if (redisClient && ['ready', 'connecting', 'reconnecting'].includes(redisClient.status)) {
     return redisClient;
   }
 
   redisClient = new Redis(url, {
     maxRetriesPerRequest: null,
+    enableReadyCheck: true,
     retryStrategy: (retries) => {
-      if (retries > 10) {
-        logger.error('Redis connection retry limit reached. Giving up.');
-        return null; // Trả về null để dừng thử lại
-      }
       const delay = Math.min(retries * 200, 3000);
       logger.warn('Redis reconnecting...', { retries, delay });
       return delay;
     }
   });
 
-  // Đăng ký các sự kiện lắng nghe trạng thái (Event Listeners) liên tục toàn cục
-  redisClient.on('connect', () => logger.info('Redis server connection established'));
-  redisClient.on('ready', () => logger.info('Redis client is ready to use'));
-  redisClient.on('error', (error) => logger.error('Redis global error', { message: error.message }));
-  redisClient.on('close', () => logger.warn('Redis connection closed'));
-
-  // Đợi cho đến khi client sẵn sàng (Xử lý không làm sập server nếu lỗi lúc khởi động)
-  await new Promise<void>((resolve) => {
-    if (redisClient?.status === 'ready') {
-      return resolve();
-    }
-    // Chỉ đợi sự kiện ready. Nếu lỗi, ioredis sẽ tự trigger 'retryStrategy' ở trên ngầm, không reject làm sập App.
-    redisClient?.once('ready', resolve);
+  redisClient.on('connect', () => {
+    logger.info('Redis server connection established');
   });
+
+  redisClient.on('ready', () => {
+    logger.info('Redis client is ready');
+  });
+
+  redisClient.on('error', (error) => {
+    logger.error('Redis error', { message: error.message });
+  });
+
+  redisClient.on('close', () => {
+    logger.warn('Redis connection closed');
+  });
+
+  await waitUntilRedisReady(redisClient);
 
   return redisClient;
 };
 
-/**
- * Lấy Instance Redis hiện tại
- */
-export const getRedisClient = (): Redis | null => redisClient;
+const waitUntilRedisReady = async (client: Redis): Promise<void> => {
+  if (client.status === 'ready') {
+    return;
+  }
+
+  await Promise.race([
+    new Promise<void>((resolve) => {
+      client.once('ready', resolve);
+    }),
+    new Promise<void>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Redis connection timeout'));
+      }, REDIS_CONNECT_TIMEOUT_MS);
+    })
+  ]);
+};
+
+export const getRedisClient = (): Redis => {
+  if (!redisClient) {
+    throw new Error('Redis has not been initialized');
+  }
+
+  return redisClient;
+};
+

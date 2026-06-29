@@ -4,21 +4,25 @@ import { ErrorCode } from '../constants/error-code.js';
 import { userRepository } from '../repositories/user.repository.js';
 import AppError from '../utils/app-error.js';
 import { verifyToken } from '../utils/jwt.util.js';
+import { redisService } from '../services/redis.service.js';
 
 
 //TODO: Bkav HoanNTh: Không dùng singleton?
 //FIXME: Bkav VinhTQ: Done
 
+
+
 export interface AuthenticatedRequest extends Request {
   user: {
     userId: string;
+    accessToken: string;
   };
 }
 
-export const authenticate = (
+export const authenticate = async (
   req: AuthenticatedRequest,
   _res: Response,
-  next: NextFunction): void => {
+  next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -27,6 +31,15 @@ export const authenticate = (
 
     const accessToken = authHeader.split(' ')[1];
     const payload = verifyToken(accessToken);
+    const jwtid = payload.jti;
+
+    if(jwtid){
+      const blacklistKey = `auth:blacklist:${jwtid}`;
+      const isBlacklisted = await redisService.exists(blacklistKey);
+      if(isBlacklisted){
+        throw new AppError(ErrorCode.UNAUTHORIZED);
+      }
+    }
 
     if (!payload.userId || typeof payload.userId !== 'string') {
       throw new AppError(ErrorCode.UNAUTHORIZED, 'Invalid token payload');
@@ -34,6 +47,7 @@ export const authenticate = (
 
     req.user = {
       userId: payload.userId,
+      accessToken: accessToken
     };
 
     next();

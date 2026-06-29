@@ -57,13 +57,14 @@ export class AuthController {
   });
 
   logoutUser = catchAsync(async (
-    req: Request,
+    req: AuthenticatedRequest,
     res: Response<ApiResponse<void>>,
     _next: NextFunction
   ) => {
     const refreshToken = req.cookies.refreshToken;
+    const accessToken = req.user.accessToken;
 
-    await this.authService.logout(refreshToken);
+    await this.authService.logout(refreshToken, accessToken);
 
     res.clearCookie('refreshToken', {
       httpOnly: true,

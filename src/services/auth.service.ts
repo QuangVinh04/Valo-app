@@ -1,4 +1,5 @@
 import { ErrorCode } from '../constants/error-code.js';
+import env from  '../config/env.js';
 import {
   AuthResponseDto,
   ChangePasswordRequestDto,
@@ -10,25 +11,35 @@ import {
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
 import { GroupRepository } from '../repositories/group.repository.js';
 import AppError from '../utils/app-error.js';
-import { generateAccessToken, verifyRefreshToken, generateRefreshToken } from '../utils/jwt.util.js';
+import { generateAccessToken, verifyRefreshToken, generateRefreshToken, verifyToken } from '../utils/jwt.util.js';
 import { AuthMapper } from '../mapper/auth.mapper.js';
 import { withTransaction } from '../database/transaction.js';
 import { generateTemporaryPassword } from '../utils/password.util.js';
 import { EmailService } from './email.service.js';
 import { hashString, compareString } from '../utils/auth.util.js';
+import { RedisService } from './redis.service.js';
+import { durationToSeconds } from '../utils/time.util.js';
 
+const getRefreshTokenKey = (userId: string) => {
+  return `auth:refresh:${userId}`;
+};
 
+const REFRESH_TOKEN_TTL = durationToSeconds(env.JWT_REFRESH_DURATION as string);
 
 export class AuthService {
   private readonly userRepository: UserRepository;
   private readonly emailService: EmailService;
+  private readonly redisService: RedisService;
 
   constructor(
     userRepository: UserRepository,
-    emailService = new EmailService()) {
+    emailService = new EmailService(),
+    redisService = new RedisService()) {
     this.userRepository = userRepository;
     this.emailService = emailService;
+    this.redisService = redisService;
   }
+
 
   /**
    * Đăng ký tài khoản mới với nhóm mặc định, mật khẩu tạm thời và email thông báo.
@@ -104,12 +115,13 @@ export class AuthService {
       id: user.id
     });
 
-    const hashedRefreshToken = await hashString(refreshToken);
+    const hashRefreshToken = hashString(refreshToken);
+    await this.redisService.set(
+      getRefreshTokenKey(user.id),
+      hashRefreshToken,
+      REFRESH_TOKEN_TTL
+    );
 
-    await this.userRepository.saveRefreshToken({
-      userId: user.id,
-      refreshToken: hashedRefreshToken
-    });
 
     //TODO: Bkav HoanNTh: Response login không trả về quá nhiều thông tin như thế này, sau cần có thông tin gì thì call API để lấy
     //FIXME: Bkav VinhTQ: Done
@@ -137,7 +149,7 @@ export class AuthService {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
 
-    const storedRefreshToken = user.refreshToken;
+    const storedRefreshToken = await this.redisService.get<string>(getRefreshTokenKey(user.id));
 
     if (!storedRefreshToken) {
       throw new AppError(ErrorCode.INVALID_TOKEN, 'No refresh token found for user');
@@ -203,7 +215,7 @@ export class AuthService {
   /**
    * Đăng xuất bằng cách xác thực refresh token và xóa token đang lưu của người dùng.
    */
-  async logout(refreshToken: string): Promise<void> {
+  async logout(refreshToken: string, accessToken: string): Promise<void> {
     if (!refreshToken) {
       throw new AppError(ErrorCode.INVALID_TOKEN, 'Refresh token is required');
     }
@@ -214,7 +226,27 @@ export class AuthService {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
 
-    await this.userRepository.deleteRefreshTokenByUserId(user.id);
+    await this.redisService.delete(getRefreshTokenKey(user.id));
+
+    const decodedAccess = verifyToken(accessToken);
+    const jwtid = decodedAccess.jti;
+    const exp = decodedAccess.exp;
+
+    if (jwtid && exp) {
+      // Tính thời gian còn lại (TTL) của Access Token bằng giây
+      const currentTimeInSeconds = Math.floor(Date.now() / 1000);
+      const timeLeftInSeconds = exp - currentTimeInSeconds;
+
+      // Nếu Token chưa hết hạn gốc, lưu jti vào Blacklist của Redis kèm TTL
+      if (timeLeftInSeconds > 0) {
+        const blacklistKey = `auth:blacklist:${jwtid}`;
+
+        // Giả định redisService của bạn có hàm setEx (hoặc set kèm options)
+        await this.redisService.set(blacklistKey, 'revoked', timeLeftInSeconds);
+      }
+    }
+
+
   }
 }
 

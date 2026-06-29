@@ -1,4 +1,5 @@
 import jwt, { type JwtPayload, type Secret, type SignOptions } from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 
 import { ErrorCode } from '../constants/error-code.js';
 import AppError from './app-error.js';
@@ -29,7 +30,9 @@ export function generateAccessToken(user: UserPayload): string {
   };
   const options: SignOptions = {
     expiresIn: env.JWT_VALID_DURATION,
-    algorithm: 'HS256' };
+    algorithm: 'HS256',
+    jwtid: randomUUID()
+  };
   
   return jwt.sign(payload, secret, options);
 }
@@ -42,15 +45,17 @@ export function generateRefreshToken(user: UserPayload): string {
   };
   const options: SignOptions = { 
     expiresIn: env.JWT_REFRESH_DURATION, 
-    algorithm: 'HS256' };
+    algorithm: 'HS256' ,
+    jwtid: randomUUID()
+  };
   
   return jwt.sign(payload, secret, options);
 }
 
 export function verifyToken(token: string): AccessTokenPayload {
   try {
-    const decoded = jwt.verify(token, secret) as AccessTokenPayload;
-    return decoded;
+
+    return jwt.verify(token, secret) as AccessTokenPayload;
   } catch {
     throw new AppError(ErrorCode.INVALID_TOKEN, 'Invalid token');
   }
@@ -58,8 +63,8 @@ export function verifyToken(token: string): AccessTokenPayload {
 
 export function verifyRefreshToken(token: string): RefreshTokenPayload {
   try {
-    const decoded = jwt.verify(token, secret) as RefreshTokenPayload;
-    return decoded;
+
+    return jwt.verify(token, secret) as RefreshTokenPayload;
   } catch {
     throw new AppError(ErrorCode.INVALID_TOKEN, 'Invalid refresh token');
   }
