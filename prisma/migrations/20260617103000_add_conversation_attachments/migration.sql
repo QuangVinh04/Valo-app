@@ -1,3 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 CREATE TABLE "conversation_attachments" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "conversationId" UUID NOT NULL,
