@@ -90,6 +90,11 @@ export const ErrorCode = {
   CONVERSATION_NOT_FOUND: {
     message: 'Conversation not found',
     statusCode: StatusCodes.NOT_FOUND
+  },
+
+  MESSAGE_NOT_FOUND: {
+    message: 'Message not found',
+    statusCode: StatusCodes.NOT_FOUND
   }
 
 } as const;

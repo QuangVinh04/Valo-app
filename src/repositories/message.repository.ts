@@ -62,6 +62,13 @@ export class MessageRepository {
 
     return messages.reverse();
   }
+
+  async findById(messageId: string) {
+    return this.prisma.message.findUnique({
+      where: { id: messageId},
+    })
+
+  }
 }
 
 export const messageRepository = new MessageRepository(

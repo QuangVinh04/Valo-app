@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
 import { MessageService, messageService } from '../services/message.service.js';
 import { SendMessageRequestDto } from '../types/message.type.js';
 import logger from '../utils/logger.util.js';
+import catchAsync from '../utils/catch-async.js';
 import { AiModelKey } from '../constants/ai-model.constant.js';
 import {
   FileService,
@@ -164,6 +165,29 @@ export class MessageController {
       res.end();
     }
   };
+
+  exportMessageDocx = catchAsync(
+    async (
+      req: AuthenticatedRequest,
+      res: Response,
+      _next: NextFunction,
+    ) => {
+      const userId = req.user.userId;
+      const messageId = req.params.messageId as string
+
+      const buffer = await this.messageService.exportMessageToDocx(
+        userId,
+        messageId
+      )
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      );
+      res.setHeader('Content-Disposition', `attachment; filename="message-${messageId}.docx"`);
+
+      res.send(buffer);
+    }
+  )
 }
 
 export const messageController = new MessageController(

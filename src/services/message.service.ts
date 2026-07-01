@@ -7,6 +7,7 @@ import { MessageResponseDto, SendMessageRequestDto } from '../types/message.type
 import { AiChatMessage } from './ai/ai-provider.js';
 import type { ProcessedDocument } from './file.service.js';
 import { MessageMapper } from '../mapper/message.mapper.js';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 
 const maxPromptContextChars = 30000;
@@ -128,6 +129,109 @@ export class MessageService {
     const messages = await this.messageRepo.findManyByConversationId(conversationId);
 
     return messages.map((message) => MessageMapper.toMessageResponse(message));
+  }
+
+  async exportMessageToDocx(userId: string, messageId: string): Promise<any> {
+    const message = await this.messageRepo.findById(messageId);
+    if(!message){
+      throw new AppError(ErrorCode.MESSAGE_NOT_FOUND);
+    }
+    const conversation = await this.conversationRepo.getByIdAndUserId(
+      message.conversationId,
+      userId
+    )
+    if (!conversation) {
+      throw new AppError(ErrorCode.FORBIDDEN);
+    }
+
+    if (message.senderType !== 'assistant') {
+      throw new AppError(ErrorCode.FORBIDDEN);
+    }
+
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              text: conversation.title || 'Message Export',
+              heading: HeadingLevel.TITLE
+            }),
+
+            ... this.markdownToDocxParagraphs(message.content || '')
+          ]
+        }
+      ]
+    });
+
+    return Packer.toBuffer(doc);
+
+  }
+
+  private markdownToDocxParagraphs(content: string): Paragraph[] {
+    const lines = content.split('\n');
+    const paragraphs: Paragraph[] = [];
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+
+      if (!line) {
+        paragraphs.push(new Paragraph({ text: '' }));
+        continue;
+      }
+
+      // Heading kiểu **Bước 1: ...**
+      const boldHeading = line.match(/^\*\*(.+)\*\*$/);
+      if (boldHeading) {
+        paragraphs.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: boldHeading[1],
+                bold: true,
+                size: 28,
+              }),
+            ],
+            spacing: { before: 240, after: 120 },
+          })
+        );
+        continue;
+      }
+
+      // Bullet: "- abc" hoặc "* abc"
+      if (line.startsWith('- ') || line.startsWith('* ')) {
+        paragraphs.push(
+          new Paragraph({
+            text: line.substring(2),
+            bullet: { level: 0 },
+            spacing: { after: 100 },
+          })
+        );
+        continue;
+      }
+
+      // Dòng có **bold** bên trong
+      const parts = line.split(/(\*\*[^*]+\*\*)/g);
+
+      paragraphs.push(
+        new Paragraph({
+          children: parts.map((part) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+              return new TextRun({
+                text: part.slice(2, -2),
+                bold: true,
+              });
+            }
+
+            return new TextRun({
+              text: part,
+            });
+          }),
+          spacing: { after: 120 },
+        })
+      );
+    }
+
+    return paragraphs;
   }
 
   private createFilePromptContext(documents: ProcessedDocument[]): string {

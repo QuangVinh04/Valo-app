@@ -31,7 +31,7 @@ export class UserController {
     };
   }
 
-  getUsers = catchAsync(
+  getUsers = (
     async (req: Request, res: Response<ApiResponse<UserListItemDto[]>>, _next: NextFunction) => {
       const pagination = getPaginationOptions(req.query);
       const result = await this.userService.getUsers(pagination, this.getListFilters(req));
