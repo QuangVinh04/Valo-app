@@ -11,9 +11,19 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'password is required')
 });
 
+const strongPasswordSchema = z
+  .string()
+  .min(8, 'newPassword must be at least 8 characters')
+  .max(128, 'newPassword must be at most 128 characters')
+  .regex(/[A-Z]/, 'newPassword must contain at least one uppercase letter')
+  .regex(/[a-z]/, 'newPassword must contain at least one lowercase letter')
+  .regex(/\d/, 'newPassword must contain at least one number')
+  .regex(/[^A-Za-z0-9]/, 'newPassword must contain at least one symbol');
+
+
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'currentPassword is required'),
-  newPassword: z.string().min(8, 'newPassword must be at least 8 characters'),
+  newPassword: strongPasswordSchema,
   confirmPassword: z.string().min(8, 'confirmPassword must be at least 8 characters')
 });
 

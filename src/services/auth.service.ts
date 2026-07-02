@@ -19,6 +19,7 @@ import { EmailService } from './email.service.js';
 import { hashString, compareString } from '../utils/auth.util.js';
 import { RedisService } from './redis.service.js';
 import { durationToSeconds } from '../utils/time.util.js';
+import logger from '../utils/logger.util.js';
 
 const getRefreshTokenKey = (userId: string) => {
   return `auth:refresh:${userId}`;
@@ -76,16 +77,23 @@ export class AuthService {
       return user;
     });
 
-    await this.emailService.sendTemporaryPasswordEmail({
-      to: result.email,
-      fullName: result.fullName,
-      temporaryPassword
-    });
+    try {
+      await this.emailService.sendTemporaryPasswordEmail({
+        to: result.email,
+        fullName: result.fullName,
+        temporaryPassword
+      });
+
+      return true;
+    } catch (error) {
+      await this.userRepository.deleteUser(result.id);
+      logger.error(error);
+      throw new AppError(ErrorCode.EMAIL_SEND_FAILED);
+    }
 
     /*TODO: Bkav HoanNTh: TH đăng ký, sau khi gửi email có chứa password, user tự đăng nhập lại
        không trả về token và thông tin chi tiết của user sau khi đăng ký, chỉ trả message để user biết cần check email*/
     // FIXME: Bkav VinhTQ: Done
-    return true;
   }
 
   /**

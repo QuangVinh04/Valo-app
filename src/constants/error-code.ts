@@ -73,6 +73,12 @@ export const ErrorCode = {
     statusCode: StatusCodes.UNAUTHORIZED
   },
 
+  EMAIL_SEND_FAILED: {
+    message: 'Email send failed',
+    statusCode: StatusCodes.INTERNAL_SERVER_ERROR
+  },
+
+
   // Group
 
   GROUP_NOT_FOUND: {
