@@ -1,27 +1,27 @@
 services:
-  app:
-    build: .
-    image: valo-app:local
-    container_name: valo-app
-    env_file: .env.docker
-    depends_on:
-      - postgres
-      - redis
-    ports:
-      - '4001:4001'
-    volumes:
-      - ./:/usr/src/app
-      - /usr/src/app/node_modules
-      - ./uploads:/usr/src/app/uploads
-    command: npm run dev
-    healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://localhost:4001/api/health >/dev/null 2>&1 || exit 1']
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    networks:
-      - valo-network
-    restart: unless-stopped
+#  app:
+#    build: .
+#    image: valo-app:local
+#    container_name: valo-app
+#    env_file: .env.docker
+#    depends_on:
+#      - postgres
+#      - redis
+#    ports:
+#      - '4001:4001'
+#    volumes:
+#      - ./:/usr/src/app
+#      - /usr/src/app/node_modules
+#      - ./uploads:/usr/src/app/uploads
+#    command: npm run dev
+#    healthcheck:
+#      test: ['CMD-SHELL', 'wget -qO- http://localhost:4001/api/health >/dev/null 2>&1 || exit 1']
+#      interval: 30s
+#      timeout: 10s
+#      retries: 5
+#    networks:
+#      - valo-network
+#    restart: unless-stopped
 
   postgres:
     image: postgres:16-alpine
@@ -51,17 +51,17 @@ services:
       - valo-network
     restart: unless-stopped
 
-  pgadmin:
-    image: dpage/pgadmin4
-    container_name: valo-pgadmin
-    env_file: .env.docker
-    ports:
-      - '8081:80'
-    depends_on:
-      - postgres
-    networks:
-      - valo-network
-    restart: unless-stopped
+#  pgadmin:
+#    image: dpage/pgadmin4
+#    container_name: valo-pgadmin
+#    env_file: .env.docker
+#    ports:
+#      - '8081:80'
+#    depends_on:
+#      - postgres
+#    networks:
+#      - valo-network
+#    restart: unless-stopped
 
 networks:
   valo-network:

@@ -20,7 +20,8 @@ app.use(
 app.use(
   cors({
     origin: env.CLIENT_URL,
-    credentials: true
+    credentials: true,
+    exposedHeaders: ['Content-Disposition']
   })
 );
 app.use(cookieParser());

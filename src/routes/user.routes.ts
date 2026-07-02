@@ -4,7 +4,7 @@ import { userController } from '../controllers/user.controller.js';
 import { PermissionConstant } from '../constants/permission.constant.js';
 import { authenticate, authorize, authorizeSelfOrPermission } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
-import { assignUserGroupsSchema, createUserSchema, updateUserSchema, updateUserSettingsSchema } from '../types/user.type.js';
+import { assignUserGroupsSchema, bulkDeleteUsersSchema, createUserSchema, updateUserSchema, updateUserSettingsSchema } from '../types/user.type.js';
 
 
 const router = Router();
@@ -66,6 +66,14 @@ router.post(
   authorize(PermissionConstant.USER_UPDATE.key),
   validateRequest(assignUserGroupsSchema),
   userController.assignGroups
+);
+
+router.delete(
+  '/bulk',
+  authenticate,
+  authorize(PermissionConstant.USER_DELETE.key),
+  validateRequest(bulkDeleteUsersSchema),
+  userController.deleteUsers
 );
 
 router.delete(

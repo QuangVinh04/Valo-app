@@ -12,6 +12,11 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
 const maxPromptContextChars = 30000;
 
+export type ExportMessageDocxResult = {
+  fileName: string;
+  buffer: Buffer;
+};
+
 export class MessageService {
   private readonly conversationRepo: ConversationRepository;
   private readonly userRepo: UserRepository;
@@ -131,7 +136,7 @@ export class MessageService {
     return messages.map((message) => MessageMapper.toMessageResponse(message));
   }
 
-  async exportMessageToDocx(userId: string, messageId: string): Promise<any> {
+  async exportMessageToDocx(userId: string, messageId: string): Promise<ExportMessageDocxResult> {
     const message = await this.messageRepo.findById(messageId);
     if(!message){
       throw new AppError(ErrorCode.MESSAGE_NOT_FOUND);
@@ -163,8 +168,22 @@ export class MessageService {
       ]
     });
 
-    return Packer.toBuffer(doc);
+    const buffer = await Packer.toBuffer(doc);
 
+    return {
+      fileName: this.sanitizeExportFileName(conversation.title || 'Message Export'),
+      buffer
+    };
+
+  }
+
+  private sanitizeExportFileName(fileName: string): string {
+    const sanitized = fileName
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return sanitized || 'Message Export';
   }
 
   private markdownToDocxParagraphs(content: string): Paragraph[] {

@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import { UserService, userService } from '../services/user.service.js';
-import type { AssignUserGroupsRequestDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserResponseDto, UserSettingsDto, UserUpdateResponseDto } from '../types/user.type.js';
+import type { AssignUserGroupsRequestDto, BulkDeleteUsersRequestDto, BulkDeleteUsersResponseDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserResponseDto, UserSettingsDto, UserUpdateResponseDto } from '../types/user.type.js';
 import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
 import catchAsync from '../utils/catch-async.js';
 import { getPaginationOptions } from '../utils/pagination.util.js';
@@ -107,6 +107,14 @@ export class UserController {
       const id = req.params.id.toString();
       await this.userService.deleteUser(id);
       return sendSuccess(res, null, 'User deleted', StatusCodes.OK);
+    }
+  );
+
+  deleteUsers = catchAsync(
+    async (req: Request, res: Response<ApiResponse<BulkDeleteUsersResponseDto>>, _next: NextFunction) => {
+      const payload = req.body as BulkDeleteUsersRequestDto;
+      const result = await this.userService.deleteUsers(payload.ids);
+      return sendSuccess(res, result, 'Users deleted', StatusCodes.OK);
     }
   );
 

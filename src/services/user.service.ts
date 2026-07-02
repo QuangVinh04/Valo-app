@@ -2,7 +2,7 @@ import { ErrorCode } from '../constants/error-code.js';
 import { UserMapper } from '../mapper/user.mapper.js';
 import { GroupRepository, groupRepository } from '../repositories/group.repository.js';
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
-import type { AssignUserGroupsRequestDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserResponseDto, UserSettingsDto, UserUpdateResponseDto } from '../types/user.type.js';
+import type { AssignUserGroupsRequestDto, BulkDeleteUsersResponseDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserResponseDto, UserSettingsDto, UserUpdateResponseDto } from '../types/user.type.js';
 import AppError from '../utils/app-error.js';
 import { hashString } from '../utils/auth.util.js';
 import { generateTemporaryPassword } from '../utils/password.util.js';
@@ -176,6 +176,19 @@ export class UserService {
     }
 
     await this.userRepo.deleteUser(id);
+  }
+
+  async deleteUsers(ids: string[]): Promise<BulkDeleteUsersResponseDto> {
+    const uniqueIds = [...new Set(ids)];
+    const existingIds = await this.userRepo.findExistingIdsByIds(uniqueIds);
+    const existingIdSet = new Set(existingIds);
+    const notFoundIds = uniqueIds.filter((id) => !existingIdSet.has(id));
+    const deletedCount = await this.userRepo.deleteManyByIds(existingIds);
+
+    return {
+      deletedCount,
+      notFoundIds,
+    };
   }
 
   /**

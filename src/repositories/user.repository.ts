@@ -233,6 +233,20 @@ export class UserRepository {
     });
   }
 
+  async deleteManyByIds(ids: readonly string[]): Promise<number> {
+    if (!ids.length) return 0;
+
+    const result = await this.prisma.user.deleteMany({
+      where: {
+        id: {
+          in: [...ids],
+        },
+      },
+    });
+
+    return result.count;
+  }
+
   async updatePassword(input: { userId: string; password: string }): Promise<void> {
     await this.prisma.user.update({
       where: { id: input.userId },

@@ -20,9 +20,14 @@ export const assignUserGroupsSchema = z.object({
   groupIds: z.array(z.uuid()).min(1, 'At least one group is required')
 });
 
+export const bulkDeleteUsersSchema = z.object({
+  ids: z.array(z.uuid()).min(1, 'At least one user is required').max(100),
+});
+
 export type CreateUserRequestDto = z.infer<typeof createUserSchema>;
 export type UpdateUserRequestDto = z.infer<typeof updateUserSchema>;
 export type AssignUserGroupsRequestDto = z.infer<typeof assignUserGroupsSchema>;
+export type BulkDeleteUsersRequestDto = z.infer<typeof bulkDeleteUsersSchema>;
 
 export const UserSettingsSchema = z.object({
   theme: z.enum(['dark', 'light']),
@@ -70,4 +75,9 @@ export interface UserUpdateResponseDto {
   fullName: string;
   phoneNumber: string | null;
   address: string | null;
+}
+
+export interface BulkDeleteUsersResponseDto {
+  deletedCount: number;
+  notFoundIds: string[];
 }

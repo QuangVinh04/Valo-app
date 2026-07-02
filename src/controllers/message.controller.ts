@@ -175,7 +175,7 @@ export class MessageController {
       const userId = req.user.userId;
       const messageId = req.params.messageId as string
 
-      const buffer = await this.messageService.exportMessageToDocx(
+      const result = await this.messageService.exportMessageToDocx(
         userId,
         messageId
       )
@@ -183,9 +183,15 @@ export class MessageController {
         'Content-Type',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
       );
-      res.setHeader('Content-Disposition', `attachment; filename="message-${messageId}.docx"`);
+      const fileName = `${result.fileName}.docx`;
+      const encodedFileName = encodeURIComponent(fileName);
 
-      res.send(buffer);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="message-export.docx"; filename*=UTF-8''${encodedFileName}`
+      );
+
+      res.send(result.buffer);
     }
   )
 }
