@@ -2,21 +2,25 @@ import type { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
 import { ErrorCode } from '../constants/error-code.js';
 import { sendError } from '../utils/api-response.js';
+import { resolveLanguage, translateMessage } from '../utils/i18n.util.js';
 import logger from '../utils/logger.util.js';
 
 
 export const notFoundHandler = (req: Request, res: Response) => {
   const error = ErrorCode.ROUTE_NOT_FOUND;
+  const language = resolveLanguage(req.headers['accept-language']);
+  const message = translateMessage(language, error.message, 'ROUTE_NOT_FOUND');
   
   return sendError(
     res, 
-    `Route not found: ${req.originalUrl}`,
+    `${message}: ${req.originalUrl}`,
     error.statusCode,
   );
 };
 
 
 export const globalErrorHandler = (err: any, req: Request, res: Response, _next: NextFunction) => {
+  const language = resolveLanguage(req.headers['accept-language']);
   const isZodError = err instanceof ZodError;
   const isOperationalError = err?.isOperational === true;
   const fallbackMeta = ErrorCode.INTERNAL_SERVER_ERROR;
@@ -30,18 +34,28 @@ export const globalErrorHandler = (err: any, req: Request, res: Response, _next:
     isZodError || isOperationalError
       ? err.statusCode || resolvedMeta.statusCode
       : fallbackMeta.statusCode;
-  const message = isZodError
+  const rawMessage = isZodError
     ? resolvedMeta.message
     : isOperationalError
       ? err.message || resolvedMeta.message
       : fallbackMeta.message;
+  const messageKey = isZodError
+    ? 'VALIDATION_FAILED'
+    : rawMessage === resolvedMeta.message
+      ? err?.errorKey
+      : undefined;
+  const message = translateMessage(
+    language,
+    rawMessage,
+    messageKey
+  );
 
   let errors: any[] | null = null;
 
   if (isZodError) {
     errors = err.issues.map((issue) => ({
       field: issue.path.join('.'),
-      message: issue.message
+      message: translateMessage(language, issue.message)
     }));
   }
 
