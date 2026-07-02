@@ -101,6 +101,17 @@ export class AttachmentRepository {
     }));
   }
 
+  async existsByUrlAndUserId(url: string, userId: string): Promise<boolean> {
+    const count = await this.prisma.attachment.count({
+      where: {
+        fileUrl: url,
+        userId,
+      },
+    });
+
+    return count > 0;
+  }
+
 
   async deleteManyByIdsAndUserId(ids: string[], userId: string): Promise<number> {
     if (!ids.length) return 0;

@@ -74,7 +74,7 @@ export const createRateLimit = (options: RateLimitOptions) => {
 
 export const authRateLimit = createRateLimit({
   keyPrefix: 'auth',
-  windowMs: 15 * 60 * 1000,
+  windowMs: 60 * 1000,
   maxRequests: 30
 });
 

@@ -1,5 +1,3 @@
-import { v2 as cloudinary } from 'cloudinary';
-import env from '../config/env.js';
 import {
   attachmentRepository,
   AttachmentRepository,
@@ -7,6 +5,9 @@ import {
 import type {
   AttachmentResponseDto,
   BulkDeleteAttachmentsResponseDto,
+  FileUploadDto,
+  LocalFileUploadRequestDto,
+  UploadedFileDeleteResponseDto,
 } from '../types/upload.type.js';
 import type { ProcessedDocument } from './file.service.js';
 import {
@@ -15,21 +16,16 @@ import {
   CursorPaginationOptions,
 } from '../utils/pagination.util.js';
 import logger from '../utils/logger.util.js';
-
-type CloudinaryResourceType = 'image' | 'raw';
+import type { Request } from 'express';
+import { cloudinaryService, CloudinaryService } from './cloudinary.service.js';
+import { localStorageService, LocalStorageService } from './local-storage.service.js';
 
 export class AttachmentService {
   constructor(
-    private readonly attachmentRepo: AttachmentRepository
-  ) {
-    if (env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET) {
-      cloudinary.config({
-        cloud_name: env.CLOUDINARY_CLOUD_NAME,
-        api_key: env.CLOUDINARY_API_KEY,
-        api_secret: env.CLOUDINARY_API_SECRET,
-      });
-    }
-  }
+    private readonly attachmentRepo: AttachmentRepository,
+    private readonly localStorage: LocalStorageService,
+    private readonly cloudinaryStorage: CloudinaryService
+  ) {}
 
   async getUserAttachments(
     userId: string,
@@ -52,6 +48,27 @@ export class AttachmentService {
     return this.attachmentRepo.createMany(userId, documents, messageId);
   }
 
+  async uploadLocalFile(
+    req: Request,
+    payload: LocalFileUploadRequestDto
+  ): Promise<FileUploadDto> {
+    return this.localStorage.uploadFile(req, payload);
+  }
+
+  async deleteTemporaryUpload(
+    userId: string,
+    url: string
+  ): Promise<UploadedFileDeleteResponseDto> {
+    const isSavedAttachment = await this.attachmentRepo.existsByUrlAndUserId(url, userId);
+    if (isSavedAttachment) {
+      return { deleted: false };
+    }
+
+    await this.deleteStoredAsset(url);
+
+    return { deleted: true };
+  }
+
   async deleteUserAttachments(
     userId: string,
     attachmentIds: string[]
@@ -62,7 +79,7 @@ export class AttachmentService {
     const notFoundIds = uniqueIds.filter((id) => !foundIds.has(id));
 
     await Promise.all(
-      attachments.map((attachment) => this.deleteCloudinaryAsset(attachment.url))
+      attachments.map((attachment) => this.deleteStoredAsset(attachment.url))
     );
 
     const deletedCount = await this.attachmentRepo.deleteManyByIdsAndUserId(
@@ -76,66 +93,22 @@ export class AttachmentService {
     };
   }
 
-  private async deleteCloudinaryAsset(url?: string | null): Promise<void> {
-    const asset = this.parseCloudinaryAsset(url);
-    if (!asset) return;
-
+  private async deleteStoredAsset(url?: string | null): Promise<void> {
     try {
-      await cloudinary.uploader.destroy(asset.publicId, {
-        resource_type: asset.resourceType,
-      });
+      await this.localStorage.deleteFileFromUrl(url);
     } catch (error) {
-      logger.warn('Cloudinary asset delete failed', {
+      logger.warn('Local attachment delete failed', {
         error: error instanceof Error ? error.message : error,
-        publicId: asset.publicId,
-        resourceType: asset.resourceType,
+        url,
       });
     }
-  }
 
-  private parseCloudinaryAsset(url?: string | null): {
-    publicId: string;
-    resourceType: CloudinaryResourceType;
-  } | null {
-    if (!url) return null;
-
-    try {
-      const parsedUrl = new URL(url);
-      const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
-      const [cloudName, resourceType, deliveryType] = pathParts;
-
-      if (
-        parsedUrl.hostname !== 'res.cloudinary.com'
-        || cloudName !== env.CLOUDINARY_CLOUD_NAME
-        || !this.isCloudinaryResourceType(resourceType)
-        || deliveryType !== 'upload'
-      ) {
-        return null;
-      }
-
-      const uploadIndex = pathParts.indexOf('upload');
-      const publicPathParts = pathParts.slice(uploadIndex + 1);
-      if (publicPathParts[0]?.startsWith('v')) {
-        publicPathParts.shift();
-      }
-
-      const publicPath = publicPathParts.join('/');
-      if (!publicPath) return null;
-
-      return {
-        resourceType,
-        publicId: resourceType === 'image'
-          ? publicPath.replace(/\.[^/.]+$/, '')
-          : publicPath,
-      };
-    } catch {
-      return null;
-    }
-  }
-
-  private isCloudinaryResourceType(value: string | undefined): value is CloudinaryResourceType {
-    return value === 'image' || value === 'raw';
+    await this.cloudinaryStorage.deleteAsset(url);
   }
 }
 
-export const attachmentService = new AttachmentService(attachmentRepository);
+export const attachmentService = new AttachmentService(
+  attachmentRepository,
+  localStorageService,
+  cloudinaryService
+);

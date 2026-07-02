@@ -78,7 +78,6 @@ export const ErrorCode = {
     statusCode: StatusCodes.INTERNAL_SERVER_ERROR
   },
 
-
   // Group
 
   GROUP_NOT_FOUND: {
@@ -101,6 +100,11 @@ export const ErrorCode = {
   MESSAGE_NOT_FOUND: {
     message: 'Message not found',
     statusCode: StatusCodes.NOT_FOUND
+  },
+
+  FILE_TOO_LARGE: {
+    message: 'File exceeds 10MB',
+    statusCode: StatusCodes.BAD_REQUEST
   }
 
 } as const;

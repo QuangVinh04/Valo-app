@@ -1,8 +1,8 @@
-import { v2 as cloudinary } from 'cloudinary';
-import env from '../config/env.js';
 import { ErrorCode } from '../constants/error-code.js';
 import type { FileUploadDto } from '../types/upload.type.js';
 import AppError from '../utils/app-error.js';
+import { cloudinaryService, CloudinaryService } from './cloudinary.service.js';
+import { localStorageService, LocalStorageService } from './local-storage.service.js';
 
 type DynamicImporter = (specifier: string) => Promise<any>;
 
@@ -29,28 +29,19 @@ export type BufferedUploadedFile = {
 const importModule = new Function('specifier', 'return import(specifier)') as DynamicImporter;
 const maxDocumentChars = 12000;
 const maxFileBytes = 10 * 1024 * 1024;
-const allowedCloudinaryResourceTypes = new Set(['image', 'raw']);
 
 
 //TODO: Bkav HoanNTh: file.service.ts chỉ xử lý logic liên quan đến file, việc xử lý promt không phải ở đây
 //FIXME: Bkav VinhTQ: Done
 
 export class FileService {
-  /**
-   * Khởi tạo cấu hình Cloudinary nếu server có đủ thông tin xác thực.
-   */
-  constructor() {
-    if (env.CLOUDINARY_CLOUD_NAME && env.CLOUDINARY_API_KEY && env.CLOUDINARY_API_SECRET) {
-      cloudinary.config({
-        cloud_name: env.CLOUDINARY_CLOUD_NAME,
-        api_key: env.CLOUDINARY_API_KEY,
-        api_secret: env.CLOUDINARY_API_SECRET,
-      });
-    }
-  }
+  constructor(
+    private readonly localStorage: LocalStorageService = localStorageService,
+    private readonly cloudinaryStorage: CloudinaryService = cloudinaryService
+  ) {}
 
   /**
-   * Tải các file từ URL Cloudinary và trích xuất nội dung văn bản.
+   * Tải các file từ local storage hoặc Cloudinary và trích xuất nội dung văn bản.
    */
   async processFilesFromUrls(fileUploads: FileUploadDto[] = []): Promise<ProcessedDocumentsResult> {
     if (!fileUploads.length) {
@@ -64,12 +55,8 @@ export class FileService {
       fileUploads.map(async (file) => {
         try {
           this.assertFileSize(file.size);
-          const response = await this.fetchCloudFile(file.data);
-          if (!response.ok) {
-            throw new Error(`HTTP status ${response.status}`);
-          }
-
-          const buffer = await this.readResponseBuffer(response);
+          const localBuffer = await this.localStorage.readFileFromUrl(file.data);
+          const buffer = localBuffer ?? await this.cloudinaryStorage.fetchFileBuffer(file.data);
 
           return {
             originalname: file.name,
@@ -80,7 +67,7 @@ export class FileService {
         } catch (error) {
           throw new AppError(
             ErrorCode.BAD_REQUEST,
-            `Không thể tải tệp tin từ đám mây: ${file.name}. Chi tiết: ${error instanceof Error ? error.message : 'Unknown'}`
+            `Không thể tải tệp tin: ${file.name}. Chi tiết: ${error instanceof Error ? error.message : 'Unknown'}`
           );
         }
       })
@@ -101,124 +88,12 @@ export class FileService {
   }
 
   /**
-   * Tải file từ Cloudinary, thử lại bằng signed URL nếu URL công khai không truy cập được.
-   */
-  private async fetchCloudFile(url: string): Promise<Response> {
-    const parsedUrl = this.parseAllowedCloudinaryUrl(url);
-    const response = await fetch(parsedUrl.toString());
-    if (response.ok) {
-      return response;
-    }
-
-    const signedUrl = this.generateSignedUrl(parsedUrl);
-    if (!signedUrl) {
-      return response;
-    }
-
-    return fetch(signedUrl);
-  }
-
-  /**
-   * Kiểm tra URL Cloudinary hợp lệ và thuộc đúng cloud đã cấu hình.
-   */
-  private parseAllowedCloudinaryUrl(url: string): URL {
-    try {
-      const parsedUrl = new URL(url);
-      const cloudName = env.CLOUDINARY_CLOUD_NAME;
-      const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
-
-      if (parsedUrl.protocol !== 'https:') {
-        throw new Error('Only HTTPS Cloudinary URLs are allowed');
-      }
-
-      if (parsedUrl.hostname !== 'res.cloudinary.com') {
-        throw new Error('Only Cloudinary delivery URLs are allowed');
-      }
-
-      if (!cloudName || pathParts[0] !== cloudName) {
-        throw new Error('Cloudinary cloud does not match server configuration');
-      }
-
-      if (!allowedCloudinaryResourceTypes.has(pathParts[1]) || pathParts[2] !== 'upload') {
-        throw new Error('Unsupported Cloudinary delivery URL');
-      }
-
-      return parsedUrl;
-    } catch (error) {
-      if (error instanceof Error) {
-        throw error;
-      }
-
-      throw new Error('Invalid Cloudinary URL', { cause: error });
-    }
-  }
-
-  /**
-   * Tạo signed URL cho tài nguyên raw để đọc các file cần quyền truy cập có chữ ký.
-   */
-  private generateSignedUrl(parsedUrl: URL): string | null {
-    const pathname = parsedUrl.pathname.replace('/image/upload/', '/raw/upload/');
-    const urlParts = pathname.split('/upload/');
-    if (urlParts.length < 2) return null;
-
-    const publicId = urlParts[1].replace(/^v\d+\//, '');
-
-    return cloudinary.url(publicId, {
-      resource_type: 'raw',
-      type: 'upload',
-      sign_url: true,
-      secure: true,
-    });
-  }
-
-  /**
    * Đảm bảo kích thước file không vượt quá giới hạn hệ thống cho phép.
    */
   private assertFileSize(size?: number): void {
     if (typeof size === 'number' && size > maxFileBytes) {
       throw new Error(`File exceeds ${this.formatBytes(maxFileBytes)}`);
     }
-  }
-
-  /**
-   * Đọc response stream thành Buffer và dừng đọc nếu dữ liệu vượt quá giới hạn.
-   */
-  private async readResponseBuffer(response: Response): Promise<Buffer> {
-    const contentLength = Number(response.headers.get('content-length'));
-    if (Number.isFinite(contentLength)) {
-      this.assertFileSize(contentLength);
-    }
-
-    if (!response.body) {
-      throw new Error('Response body is unreadable');
-    }
-
-    const reader = response.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let receivedBytes = 0;
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (!value) continue;
-
-        receivedBytes += value.byteLength;
-        if (receivedBytes > maxFileBytes) {
-          await reader.cancel();
-          throw new Error(`File exceeds ${this.formatBytes(maxFileBytes)}`);
-        }
-
-        chunks.push(value);
-      }
-    } finally {
-      reader.releaseLock();
-    }
-
-    return Buffer.concat(
-      chunks.map((chunk) => Buffer.from(chunk)),
-      receivedBytes
-    );
   }
 
   /**
@@ -359,4 +234,3 @@ export class FileService {
     return `${text.slice(0, maxLength)}\n[Content truncated]`;
   }
 }
-
