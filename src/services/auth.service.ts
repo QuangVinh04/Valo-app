@@ -123,7 +123,7 @@ export class AuthService {
       id: user.id
     });
 
-    const hashRefreshToken = hashString(refreshToken);
+    const hashRefreshToken = await hashString(refreshToken);
     await this.redisService.set(
       getRefreshTokenKey(user.id),
       hashRefreshToken,
@@ -157,10 +157,15 @@ export class AuthService {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
 
-    const storedRefreshToken = await this.redisService.get<string>(getRefreshTokenKey(user.id));
+    const storedRefreshToken = await this.redisService.get<unknown>(getRefreshTokenKey(user.id));
 
     if (!storedRefreshToken) {
       throw new AppError(ErrorCode.INVALID_TOKEN, 'No refresh token found for user');
+    }
+
+    if (typeof storedRefreshToken !== 'string') {
+      await this.redisService.delete(getRefreshTokenKey(user.id));
+      throw new AppError(ErrorCode.INVALID_TOKEN, 'Invalid stored refresh token');
     }
 
     const isRefreshTokenValid = await compareString(token, storedRefreshToken);
