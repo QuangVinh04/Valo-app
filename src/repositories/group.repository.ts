@@ -8,6 +8,8 @@ const groupDetailSelect = {
   name: true,
   description: true,
   permissions: true,
+  createdAt: true,
+  updatedAt: true,
   _count: {
     select: {
       userGroups: true,
@@ -35,6 +37,7 @@ const groupListSelect = {
   id: true,
   name: true,
   description: true,
+  createdAt: true,
   _count: {
     select: {
       userGroups: true,
@@ -72,6 +75,12 @@ export interface UpdateGroupInput {
   name?: string;
   description?: string;
   permissions?: readonly string[];
+}
+
+export interface GroupFindManyInput {
+  skip: number;
+  take: number;
+  search?: string;
 }
 
 export class GroupRepository {
@@ -119,17 +128,31 @@ export class GroupRepository {
     });
   }
 
-  async findMany(input: { skip: number; take: number }): Promise<GroupListItem[]> {
+  private buildGroupWhere(input: Pick<GroupFindManyInput, 'search'>): Prisma.GroupWhereInput {
+    return {
+      ...(input.search ? {
+        OR: [
+          { name: { contains: input.search, mode: 'insensitive' } },
+          { description: { contains: input.search, mode: 'insensitive' } },
+        ],
+      } : {}),
+    };
+  }
+
+  async findMany(input: GroupFindManyInput): Promise<GroupListItem[]> {
     return this.prisma.group.findMany({
       skip: input.skip,
       take: input.take,
+      where: this.buildGroupWhere(input),
       select: groupListSelect,
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  count() {
-    return this.prisma.group.count();
+  count(input: Pick<GroupFindManyInput, 'search'> = {}) {
+    return this.prisma.group.count({
+      where: this.buildGroupWhere(input),
+    });
   }
 
   countUsers(groupId: string) {
@@ -167,6 +190,20 @@ export class GroupRepository {
     await this.prisma.group.delete({
       where: { id },
     });
+  }
+
+  async deleteManyByIds(ids: readonly string[]): Promise<number> {
+    if (!ids.length) return 0;
+
+    const result = await this.prisma.group.deleteMany({
+      where: {
+        id: {
+          in: [...ids],
+        },
+      },
+    });
+
+    return result.count;
   }
 
   async findExistingIdsByIds(ids: readonly string[]): Promise<string[]> {

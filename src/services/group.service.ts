@@ -1,5 +1,5 @@
 import { GroupRepository, groupRepository } from '../repositories/group.repository.js';
-import { CreatedGroupDto, GroupMemberDto, GroupRequestDto, GroupResponseDto, UpdateGroupRequestDto, UpdateGroupResponseDto } from '../types/group.type.js';
+import { BulkDeleteGroupsResponseDto, CreatedGroupDto, GroupMemberDto, GroupRequestDto, GroupResponseDto, UpdateGroupRequestDto, UpdateGroupResponseDto } from '../types/group.type.js';
 import { GroupMapper } from '../mapper/group.mapper.js';
 import AppError from '../utils/app-error.js';
 import { ErrorCode } from '../constants/error-code.js';
@@ -30,13 +30,18 @@ export class GroupService {
   /**
    * Lấy danh sách nhóm theo phân trang và chuyển sang DTO trả về cho client.
    */
-  async getGroups(pagination: PaginationOptions): Promise<any> {
+  async getGroups(pagination: PaginationOptions, filters: { search?: string } = {}): Promise<any> {
+    const normalizedFilters = {
+      search: filters.search?.trim() || undefined,
+    };
+
     const [groups, totalItems] = await Promise.all([
       this.groupRepository.findMany({
         skip: pagination.skip,
-        take: pagination.limit
+        take: pagination.limit,
+        ...normalizedFilters,
       }),
-      this.groupRepository.count()
+      this.groupRepository.count(normalizedFilters)
     ]);
 
     return buildPaginatedResult(
@@ -124,6 +129,19 @@ export class GroupService {
     }
 
     await this.groupRepository.deleteGroup(id);
+  }
+
+  async deleteGroups(ids: string[]): Promise<BulkDeleteGroupsResponseDto> {
+    const uniqueIds = this.normalizeIds(ids);
+    const existingIds = await this.groupRepository.findExistingIdsByIds(uniqueIds);
+    const existingIdSet = new Set(existingIds);
+    const notFoundIds = uniqueIds.filter((id) => !existingIdSet.has(id));
+    const deletedCount = await this.groupRepository.deleteManyByIds(existingIds);
+
+    return {
+      deletedCount,
+      notFoundIds,
+    };
   }
 
 
