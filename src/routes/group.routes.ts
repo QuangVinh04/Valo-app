@@ -4,7 +4,7 @@ import { groupController } from '../controllers/group.controller.js';
 import { PermissionConstant } from '../constants/permission.constant.js';
 import { authenticate, authorize } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validation.middleware.js';
-import { groupMembersSchema, groupSchema, updateGroupSchema } from '../types/group.type.js';
+import { bulkDeleteGroupsSchema, groupMembersSchema, groupSchema, updateGroupSchema } from '../types/group.type.js';
 
 const router = Router();
 
@@ -31,6 +31,14 @@ router.post(
   authorize(PermissionConstant.GROUP_CREATE.key),
   validateRequest(groupSchema),
   groupController.createGroup
+);
+
+router.delete(
+  '/bulk',
+  authenticate,
+  authorize(PermissionConstant.GROUP_DELETE.key),
+  validateRequest(bulkDeleteGroupsSchema),
+  groupController.deleteGroups
 );
 
 router.put(

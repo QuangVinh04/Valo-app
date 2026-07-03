@@ -9,6 +9,8 @@ export class GroupMapper {
             name: group.name,
             description: group.description,
             permissions: group.permissions,
+            createdAt: group.createdAt,
+            updatedAt: group.updatedAt,
             memberCount: group._count.userGroups,
         };
     }
@@ -41,6 +43,7 @@ export class GroupMapper {
             id: group.id,
             name: group.name,
             description: group.description,
+            createdAt: group.createdAt,
             memberCount: group._count.userGroups,
         };
     }

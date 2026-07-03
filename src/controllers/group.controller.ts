@@ -9,7 +9,9 @@ import type {
   GroupMemberDto,
   CreatedGroupDto,
   GroupListItemDto,
-  UpdateGroupResponseDto
+  UpdateGroupResponseDto,
+  BulkDeleteGroupsRequestDto,
+  BulkDeleteGroupsResponseDto
 } from '../types/group.type.js';
 import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
 import catchAsync from '../utils/catch-async.js';
@@ -26,7 +28,8 @@ export class GroupController {
   //FIXME: Bkav VinhTQ: Done
   getGroups = catchAsync(
     async (req: Request, res: Response<ApiResponse<GroupListItemDto[]>>, _next: NextFunction) => {
-      const result = await this.groupService.getGroups(getPaginationOptions(req.query));
+      const search = typeof req.query.search === 'string' ? req.query.search : undefined;
+      const result = await this.groupService.getGroups(getPaginationOptions(req.query), { search });
       return sendSuccess(res, result.data, 'Groups found', StatusCodes.OK, result.meta);
     }
   );
@@ -65,6 +68,14 @@ export class GroupController {
       const id = req.params.id.toString();
       await this.groupService.deleteGroup(id);
       return sendSuccess(res, null, 'Group deleted', StatusCodes.OK);
+    }
+  );
+
+  deleteGroups = catchAsync(
+    async (req: Request, res: Response<ApiResponse<BulkDeleteGroupsResponseDto>>, _next: NextFunction) => {
+      const payload = req.body as BulkDeleteGroupsRequestDto;
+      const result = await this.groupService.deleteGroups(payload.ids);
+      return sendSuccess(res, result, 'Groups deleted', StatusCodes.OK);
     }
   );
 

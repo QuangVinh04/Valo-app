@@ -15,16 +15,23 @@ export const groupMembersSchema = z.object({
     userIds: z.array(z.uuid()).min(1, 'At least one user is required')
 });
 
+export const bulkDeleteGroupsSchema = z.object({
+    ids: z.array(z.uuid()).min(1, 'At least one group is required').max(100),
+});
+
 
 export type GroupRequestDto = z.infer<typeof groupSchema>;
 export type UpdateGroupRequestDto = z.infer<typeof updateGroupSchema>;
 export type GroupMembersRequestDto = z.infer<typeof groupMembersSchema>;
+export type BulkDeleteGroupsRequestDto = z.infer<typeof bulkDeleteGroupsSchema>;
 
 export interface GroupResponseDto {
     id: string;
     name: string;
     description: string | null;
     permissions: string[];
+    createdAt: Date;
+    updatedAt: Date;
     memberCount: number;
 }
 
@@ -42,6 +49,7 @@ export interface GroupListItemDto {
     id: string;
     name: string;
     description: string | null;
+    createdAt: Date;
     memberCount: number;
 }
 
@@ -60,3 +68,7 @@ export interface CreatedGroupDto{
     id: string;
 }
 
+export interface BulkDeleteGroupsResponseDto {
+    deletedCount: number;
+    notFoundIds: string[];
+}
