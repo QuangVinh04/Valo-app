@@ -22,7 +22,7 @@ model User {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
   refreshToken       String?
-  mustChangePassword Boolean        @default(true)
+  active             Boolean        @default(false)
   //TODO: Bkav HoanNTH: không nên để setting default, nên để mặc định null sau đó trả mặc định trong code tránh TH sau thay đổi default phải migration
   //FIXME: Bkav VinhTQ: Done
   settings           Json?

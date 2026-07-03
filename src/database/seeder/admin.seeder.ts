@@ -38,7 +38,7 @@ export async function seedAdmin(prisma: PrismaClient): Promise<void> {
     fullName: DEFAULT_ADMIN_FULL_NAME.trim(),
     email,
     password: await hashString(DEFAULT_ADMIN_PASSWORD),
-    mustChangePassword: true,
+    active: true,
   });
 
   await userRepository.assignGroups(user.id, [adminGroup.id]);

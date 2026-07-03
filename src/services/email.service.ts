@@ -1,37 +1,29 @@
 
 import env from '../config/env.js';
 import { mailTransporter } from '../config/mail.js';
-import { temporaryPasswordTemplate } from '../templates/email/temporary-password.js';
+import { otpEmailTemplate } from '../templates/email/otp.js';
 
-type TemporaryPasswordEmailInput = {
+type OtpEmailInput = {
   to: string;
   fullName: string;
-  temporaryPassword: string;
+  otp: string;
 };
 
 export class EmailService {
-  
-  /**
-   * Gửi email chứa mật khẩu tạm thời khi tài khoản được tạo hoặc đăng ký.
-   */
-  async sendTemporaryPasswordEmail(input: TemporaryPasswordEmailInput): Promise<void> {
+
+  async sendOtpEmail(input: OtpEmailInput): Promise<void> {
+    const template = otpEmailTemplate({
+      fullName: input.fullName,
+      otp: input.otp,
+      expiresInMinutes: 5,
+    });
 
     await mailTransporter.sendMail({
       from: env.MAIL_FROM,
       to: input.to,
-      subject: 'Your temporary password',
-      text: [
-        `Hello ${input.fullName},`,
-        '',
-        'Your account has been created.',
-        `Temporary password: ${input.temporaryPassword}`,
-        '',
-        'Please log in and change your password immediately.',
-      ].join('\n'),
-      html: temporaryPasswordTemplate({
-        fullName: input.fullName,
-        temporaryPassword: input.temporaryPassword
-      })
+      subject: template.subject,
+      text: template.text,
+      html: template.html,
     });
   }
 }

@@ -78,6 +78,11 @@ export const ErrorCode = {
     statusCode: StatusCodes.INTERNAL_SERVER_ERROR
   },
 
+  OTP_RESEND_TOO_SOON: {
+    message: 'OTP resend too soon',
+    statusCode: StatusCodes.TOO_MANY_REQUESTS
+  },
+
   // Group
 
   GROUP_NOT_FOUND: {

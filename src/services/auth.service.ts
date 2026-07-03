@@ -1,11 +1,13 @@
 import { ErrorCode } from '../constants/error-code.js';
-import env from  '../config/env.js';
+import env from '../config/env.js';
 import {
   AuthResponseDto,
   ChangePasswordRequestDto,
   LoginRequestDto,
+  OtpRequestDto,
   RefreshTokenRequestDto,
   RefreshTokenResponseDto,
+  ResendOtpRequestDto,
   RegisterRequestDto,
 } from '../types/auth.type.js';
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
@@ -14,40 +16,87 @@ import AppError from '../utils/app-error.js';
 import { generateAccessToken, verifyRefreshToken, generateRefreshToken, verifyToken } from '../utils/jwt.util.js';
 import { AuthMapper } from '../mapper/auth.mapper.js';
 import { withTransaction } from '../database/transaction.js';
-import { generateTemporaryPassword } from '../utils/password.util.js';
-import { EmailService } from './email.service.js';
-import { hashString, compareString } from '../utils/auth.util.js';
+import { hashString, compareString, generateOtp } from '../utils/auth.util.js';
 import { RedisService } from './redis.service.js';
 import { durationToSeconds } from '../utils/time.util.js';
-import logger from '../utils/logger.util.js';
 
 const getRefreshTokenKey = (userId: string) => {
   return `auth:refresh:${userId}`;
+};
+
+type StoredOtp = {
+  userId: string;
+  hash: string;
+};
+
+type OtpRecipient = {
+  id: string;
+  email: string;
+  fullName: string;
 };
 
 const REFRESH_TOKEN_TTL = durationToSeconds(env.JWT_REFRESH_DURATION as string);
 
 export class AuthService {
   private readonly userRepository: UserRepository;
-  private readonly emailService: EmailService;
   private readonly redisService: RedisService;
 
   constructor(
     userRepository: UserRepository,
-    emailService = new EmailService(),
     redisService = new RedisService()) {
     this.userRepository = userRepository;
-    this.emailService = emailService;
     this.redisService = redisService;
+  }
+
+  private async sendVerificationOtp(
+    user: OtpRecipient,
+    options: { failOnCooldown?: boolean } = {}
+  ): Promise<void> {
+    const email = user.email.trim().toLowerCase();
+    const cooldownKey = `auth:otp:cooldown:${email}`;
+    const isCooldown = await this.redisService.exists(cooldownKey);
+
+    if (isCooldown) {
+      if (options.failOnCooldown) {
+        throw new AppError(ErrorCode.OTP_RESEND_TOO_SOON);
+      }
+
+      return;
+    }
+
+    const otp = generateOtp();
+
+    await this.redisService.set<StoredOtp>(
+      `auth:otp:${email}`,
+      {
+        userId: user.id,
+        hash: await hashString(otp),
+      },
+      5 * 60
+    );
+
+    await this.redisService.set(
+      cooldownKey,
+      true,
+      60
+    );
+
+    const { emailQueue, SEND_OTP_JOB } = await import('../queues/email.queue.js');
+
+    await emailQueue.add(SEND_OTP_JOB, {
+      userId: user.id,
+      to: user.email,
+      fullName: user.fullName,
+      otp,
+    });
   }
 
 
   /**
-   * Đăng ký tài khoản mới với nhóm mặc định, mật khẩu tạm thời và email thông báo.
+   * Đăng ký tài khoản mới với nhóm mặc định, mật khẩu người dùng nhập và OTP xác minh.
    */
   async registerUser(payload: RegisterRequestDto): Promise<boolean> {
     const email = payload.email.trim().toLowerCase();
-    const temporaryPassword = generateTemporaryPassword();
 
     const result = await withTransaction(async (tx) => {
       //TODO: Bkav HoanNTh: dùng singleton
@@ -66,34 +115,59 @@ export class AuthService {
         throw new AppError(ErrorCode.GROUP_NOT_FOUND);
       }
 
-      const password = await hashString(temporaryPassword);
+      const password = await hashString(payload.password);
       const user = await userRepo.createUser({
         fullName: payload.fullName.trim(),
         email,
         password,
-        mustChangePassword: true
+        active: false
       });
       await userRepo.assignGroups(user.id, [groupDefault.id]);
       return user;
     });
 
-    try {
-      await this.emailService.sendTemporaryPasswordEmail({
-        to: result.email,
-        fullName: result.fullName,
-        temporaryPassword
-      });
+    await this.sendVerificationOtp(result);
 
-      return true;
-    } catch (error) {
-      await this.userRepository.deleteUser(result.id);
-      logger.error(error);
-      throw new AppError(ErrorCode.EMAIL_SEND_FAILED);
+    return true;
+
+  }
+
+  async verifyOtp(payload: OtpRequestDto): Promise<boolean> {
+    const storedOtp = await this.redisService.get<StoredOtp>(`auth:otp:${payload.email}`);
+
+    if (!storedOtp) {
+      throw new AppError(ErrorCode.INVALID_EXPIRED_OTP);
     }
 
-    /*TODO: Bkav HoanNTh: TH đăng ký, sau khi gửi email có chứa password, user tự đăng nhập lại
-       không trả về token và thông tin chi tiết của user sau khi đăng ký, chỉ trả message để user biết cần check email*/
-    // FIXME: Bkav VinhTQ: Done
+    const matched = await compareString(payload.otp, storedOtp.hash);
+    if (!matched) {
+      throw new AppError(ErrorCode.INVALID_EXPIRED_OTP);
+    }
+
+    await this.userRepository.activateUser(storedOtp.userId);
+    await this.redisService.delete(`auth:otp:${payload.email}`);
+    await this.redisService.delete(`auth:otp:cooldown:${payload.email}`);
+
+
+    return true;
+  }
+
+
+  async resendOtp(payload: ResendOtpRequestDto): Promise<boolean> {
+    const email = payload.email.trim().toLowerCase();
+    const user = await this.userRepository.findByEmail(email);
+
+    if (!user) {
+      throw new AppError(ErrorCode.USER_NOT_FOUND);
+    }
+
+    if (user.active) {
+      return true;
+    }
+
+    await this.sendVerificationOtp(user, { failOnCooldown: true });
+
+    return true;
   }
 
   /**
@@ -101,7 +175,7 @@ export class AuthService {
    */
   async loginUser(payload: LoginRequestDto): Promise<{
     authResponse: AuthResponseDto;
-    refreshToken: string;
+    refreshToken: string | null;
   }> {
     const username = payload.username.trim().toLowerCase();
     const user = await this.userRepository.findByEmail(username);
@@ -113,6 +187,15 @@ export class AuthService {
     const isPasswordMatched = await compareString(payload.password, user.password);
     if (!isPasswordMatched) {
       throw new AppError(ErrorCode.INVALID_CREDENTIALS);
+    }
+
+    if (!user.active) {
+      await this.sendVerificationOtp(user);
+
+      return {
+        authResponse: AuthMapper.toAuthResponse(user, null),
+        refreshToken: null
+      };
     }
 
     const accessToken = generateAccessToken({

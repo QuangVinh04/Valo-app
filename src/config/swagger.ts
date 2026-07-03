@@ -62,9 +62,26 @@ export const swaggerDocument = {
       },
       RegisterRequest: {
         type: 'object',
-        required: ['fullName', 'email'],
+        required: ['fullName', 'email', 'password', 'confirmPassword'],
         properties: {
           fullName: { type: 'string', example: 'Nguyen Van A' },
+          email: { type: 'string', format: 'email', example: 'user@example.com' },
+          password: { type: 'string', example: 'Password123!' },
+          confirmPassword: { type: 'string', example: 'Password123!' },
+        },
+      },
+      OtpRequest: {
+        type: 'object',
+        required: ['email', 'otp'],
+        properties: {
+          email: { type: 'string', format: 'email', example: 'user@example.com' },
+          otp: { type: 'string', example: '123456' },
+        },
+      },
+      ResendOtpRequest: {
+        type: 'object',
+        required: ['email'],
+        properties: {
           email: { type: 'string', format: 'email', example: 'user@example.com' },
         },
       },
@@ -73,14 +90,14 @@ export const swaggerDocument = {
         required: ['username', 'password'],
         properties: {
           username: { type: 'string', format: 'email', example: 'user@example.com' },
-          password: { type: 'string', example: 'TemporaryPassword123!' },
+          password: { type: 'string', example: 'Password123!' },
         },
       },
       ChangePasswordRequest: {
         type: 'object',
         required: ['currentPassword', 'newPassword', 'confirmPassword'],
         properties: {
-          currentPassword: { type: 'string', example: 'TemporaryPassword123!' },
+          currentPassword: { type: 'string', example: 'Password123!' },
           newPassword: { type: 'string', example: 'NewPassword123!' },
           confirmPassword: { type: 'string', example: 'NewPassword123!' },
         },
@@ -100,7 +117,7 @@ export const swaggerDocument = {
             items: { type: 'string' },
             example: ['CHAT', 'CONV_R'],
           },
-          mustChangePassword: { type: 'boolean', example: true },
+          active: { type: 'boolean', example: true },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
           accessToken: { type: 'string', nullable: true },
@@ -169,10 +186,12 @@ export const swaggerDocument = {
       },
       UserRequest: {
         type: 'object',
-        required: ['fullName', 'email'],
+        required: ['fullName', 'email', 'password', 'confirmPassword'],
         properties: {
           fullName: { type: 'string', example: 'Nguyen Van B' },
           email: { type: 'string', format: 'email', example: 'b@example.com' },
+          password: { type: 'string', example: 'Password123!' },
+          confirmPassword: { type: 'string', example: 'Password123!' },
           phoneNumber: { type: 'string', nullable: true, example: '+84901234567' },
           address: { type: 'string', nullable: true, example: 'Ho Chi Minh City' },
           groupIds: {
@@ -205,7 +224,7 @@ export const swaggerDocument = {
             type: 'array',
             items: { $ref: '#/components/schemas/UserGroupLite' },
           },
-          mustChangePassword: { type: 'boolean', example: true },
+          active: { type: 'boolean', example: true },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
         },
@@ -332,7 +351,7 @@ export const swaggerDocument = {
     [`${BASE_AUTH_PATH}/register`]: {
       post: {
         tags: ['Auth'],
-        summary: 'Register a user and email a temporary password',
+        summary: 'Register a user and email an OTP',
         requestBody: {
           required: true,
           content: {
@@ -383,6 +402,44 @@ export const swaggerDocument = {
             },
           },
           '401': { description: 'Invalid credentials' },
+        },
+      },
+    },
+    [`${BASE_AUTH_PATH}/verify-otp`]: {
+      post: {
+        tags: ['Auth'],
+        summary: 'Verify account with OTP',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/OtpRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Account verified successfully' },
+          '400': { description: 'Invalid or expired OTP' },
+          '404': { description: 'User not found' },
+        },
+      },
+    },
+    [`${BASE_AUTH_PATH}/resend-otp`]: {
+      post: {
+        tags: ['Auth'],
+        summary: 'Resend account verification OTP',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ResendOtpRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'OTP sent successfully' },
+          '429': { description: 'Please wait before requesting another OTP' },
+          '404': { description: 'User not found' },
         },
       },
     },

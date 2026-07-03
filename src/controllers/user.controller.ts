@@ -17,17 +17,17 @@ export class UserController {
   private getListFilters(req: Request) {
     const search = typeof req.query.search === 'string' ? req.query.search : undefined;
     const groupId = typeof req.query.groupId === 'string' ? req.query.groupId : undefined;
-    const mustChangePassword =
-      req.query.mustChangePassword === 'true'
+    const active =
+      req.query.active === 'true'
         ? true
-        : req.query.mustChangePassword === 'false'
+        : req.query.active === 'false'
           ? false
           : undefined;
 
     return {
       search,
       groupId,
-      mustChangePassword
+      active
     };
   }
 

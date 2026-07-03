@@ -42,7 +42,7 @@ upserted_users AS (
     "phoneNumber",
     "address",
     "password",
-    "mustChangePassword",
+    "active",
     "settings",
     "createdAt",
     "updatedAt"

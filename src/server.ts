@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import http, { type Server as HttpServer } from 'http';
 import { promisify } from 'util';
+import type { Queue, Worker } from 'bullmq';
 
 import app from './app.js';
 import env from './config/env.js';
@@ -16,6 +17,8 @@ class Server {
   private readonly port: number;
   private readonly prismaService: PrismaService;
   private readonly httpServer: HttpServer;
+  private emailQueue: Queue | null = null;
+  private emailWorker: Worker | null = null;
   private isShuttingDown = false;
 
   constructor(port: number) {
@@ -30,6 +33,13 @@ class Server {
 
     await connectDB();
     await connectRedis(env.REDIS_URL);
+    const [{ emailQueue }, { emailWorker }] = await Promise.all([
+      import('./queues/email.queue.js'),
+      import('./queues/email.worker.js'),
+    ]);
+    this.emailQueue = emailQueue;
+    this.emailWorker = emailWorker;
+    void this.emailWorker.waitUntilReady();
     await runDatabaseSeeders(this.prismaService.client);
 
     this.httpServer.listen(this.port, () => {
@@ -80,6 +90,10 @@ class Server {
       const closeServer = promisify(this.httpServer.close.bind(this.httpServer));
       await closeServer();
       logger.info('HTTP server closed');
+
+      await this.emailWorker?.close();
+      await this.emailQueue?.close();
+      logger.info('Email queue closed');
 
       const redisClient = getRedisClient();
       if (redisClient && redisClient.status !== 'end') {

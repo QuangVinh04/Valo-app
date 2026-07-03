@@ -10,14 +10,15 @@ import { UserSettingsDto } from '../types/user.type.js';
 export class AuthMapper {
   static toAuthResponse(
     user: User,
-    accessToken: string
+    accessToken: string | null
   ): AuthResponseDto {
     return {
       id: user.id,
       fullName: user.fullName,
-      mustChangePassword: user.mustChangePassword,
+      email: user.email,
+      active: user.active,
       accessToken,
-      settings: user.settings as UserSettingsDto, 
+      settings: user.settings as UserSettingsDto,
     };
   }
 }

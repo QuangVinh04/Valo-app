@@ -5,8 +5,6 @@ import { userRepository, UserRepository } from '../repositories/user.repository.
 import type { AssignUserGroupsRequestDto, BulkDeleteUsersResponseDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserResponseDto, UserSettingsDto, UserUpdateResponseDto } from '../types/user.type.js';
 import AppError from '../utils/app-error.js';
 import { hashString } from '../utils/auth.util.js';
-import { generateTemporaryPassword } from '../utils/password.util.js';
-import { EmailService } from './email.service.js';
 import {
   buildPaginatedResult,
   type PaginatedResult,
@@ -17,18 +15,16 @@ import {
 export interface UserListFilters {
   search?: string;
   groupId?: string;
-  mustChangePassword?: boolean;
+  active?: boolean;
 }
 
 export class UserService {
   private readonly userRepo: UserRepository;
   private readonly groupRepo: GroupRepository;
-  private readonly emailService: EmailService;
 
-  constructor(userRepository: UserRepository, groupRepository: GroupRepository, emailService: EmailService) {
+  constructor(userRepository: UserRepository, groupRepository: GroupRepository) {
     this.userRepo = userRepository;
     this.groupRepo = groupRepository;
-    this.emailService = emailService;
   }
 
   /**
@@ -38,7 +34,7 @@ export class UserService {
     const normalizedFilters = {
       search: filters.search?.trim() || undefined,
       groupId: filters.groupId?.trim() || undefined,
-      mustChangePassword: filters.mustChangePassword,
+      active: filters.active,
     };
 
     const [users, totalItems] = await Promise.all([
@@ -71,7 +67,7 @@ export class UserService {
   }
 
   /**
-   * Tạo tài khoản mới với thông tin cơ bản, mật khẩu tạm thời và email thông báo.
+   * Tạo tài khoản mới với mật khẩu admin nhập. Tài khoản vẫn inactive đến khi người dùng đăng nhập và xác minh OTP.
    */
   async createUser(payload: CreateUserRequestDto): Promise<CreatedUserDto> {
     const email = payload.email.trim().toLowerCase();
@@ -81,21 +77,13 @@ export class UserService {
       throw new AppError(ErrorCode.EMAIL_ALREADY_IN_USE);
     }
 
-    const temporaryPassword = generateTemporaryPassword();
-
     const user = await this.userRepo.createUser({
       fullName: payload.fullName.trim(),
       email,
       phoneNumber: payload.phoneNumber?.trim() || null,
       address: payload.address?.trim() || null,
-      password: await hashString(temporaryPassword),
-      mustChangePassword: true,
-    });
-
-    await this.emailService.sendTemporaryPasswordEmail({
-      to: user.email,
-      fullName: user.fullName,
-      temporaryPassword,
+      password: await hashString(payload.password),
+      active: false,
     });
 
     return { id: user.id };
@@ -209,4 +197,4 @@ export class UserService {
 }
 
 
-export const userService = new UserService(userRepository, groupRepository, new EmailService());
+export const userService = new UserService(userRepository, groupRepository);

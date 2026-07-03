@@ -15,7 +15,7 @@ export class UserMapper {
         name: group.name,
         description: group.description
       })),
-      mustChangePassword: user.mustChangePassword,
+      active: user.active,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -41,6 +41,7 @@ export class UserMapper {
         name: group.name,
         description: group.description
       })),
+      active: user.active,
     };
   }
 }

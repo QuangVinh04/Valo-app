@@ -3,7 +3,9 @@ import type {
   AuthResponseDto,
   ChangePasswordRequestDto,
   LoginRequestDto,
+  OtpRequestDto,
   RefreshTokenResponseDto,
+  ResendOtpRequestDto,
   RegisterRequestDto,
 } from '../types/auth.type.js';
 import { authService, AuthService } from '../services/auth.service.js';
@@ -42,6 +44,15 @@ export class AuthController {
     const payload = req.body as LoginRequestDto;
     const { authResponse, refreshToken } = await this.authService.loginUser(payload);
 
+    if (!refreshToken) {
+      return sendSuccess(
+        res,
+        authResponse,
+        'Account verification required',
+        StatusCodes.OK
+      );
+    }
+
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -54,6 +65,38 @@ export class AuthController {
       authResponse,
       'Login successful',
       StatusCodes.OK);
+  });
+
+  verifyOtp = catchAsync(async (
+    req: Request,
+    res: Response<ApiResponse<boolean>>,
+    _next: NextFunction
+  ) => {
+    const payload = req.body as OtpRequestDto;
+    const result = await this.authService.verifyOtp(payload);
+
+    return sendSuccess(
+      res,
+      result,
+      'Account verified successfully',
+      StatusCodes.OK
+    );
+  });
+
+  resendOtp = catchAsync(async (
+    req: Request,
+    res: Response<ApiResponse<boolean>>,
+    _next: NextFunction
+  ) => {
+    const payload = req.body as ResendOtpRequestDto;
+    const result = await this.authService.resendOtp(payload);
+
+    return sendSuccess(
+      res,
+      result,
+      'OTP sent successfully',
+      StatusCodes.OK
+    );
   });
 
   logoutUser = catchAsync(async (

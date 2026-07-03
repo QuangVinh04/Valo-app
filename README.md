@@ -9,7 +9,7 @@ Backend API cho Valo App, xây dựng bằng Express, TypeScript, Prisma, Postgr
 - Quản lý nhóm, quyền và thành viên nhóm.
 - Quản lý hội thoại và tin nhắn chat.
 - Stream phản hồi AI qua Flowise.
-- Gửi email mật khẩu tạm thời bằng SMTP.
+- Gửi email OTP xác minh tài khoản qua BullMQ, Redis và SMTP.
 - Swagger UI tại `/api-docs`.
 
 ## Công nghệ

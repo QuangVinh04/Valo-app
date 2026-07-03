@@ -26,7 +26,7 @@ const userDetailSelect = {
   email: true,
   phoneNumber: true,
   address: true,
-  mustChangePassword: true,
+  active: true,
   createdAt: true,
   updatedAt: true,
   ...userGroupsSelect,
@@ -36,6 +36,7 @@ const userListSelect = {
   id: true,
   fullName: true,
   email: true,
+  active: true,
   ...userGroupsSelect,
 } satisfies Prisma.UserSelect;
 
@@ -53,7 +54,7 @@ export interface CreateUserInput {
   phoneNumber?: string | null;
   address?: string | null;
   password: string;
-  mustChangePassword?: boolean;
+  active?: boolean;
 }
 
 export interface UpdateUserInput {
@@ -72,7 +73,7 @@ export interface UserFindManyInput {
   take: number;
   search?: string;
   groupId?: string;
-  mustChangePassword?: boolean;
+  active?: boolean;
 }
 
 export class UserRepository {
@@ -133,7 +134,7 @@ export class UserRepository {
   }
 
 
-  private buildUserWhere(input: Pick<UserFindManyInput, 'search' | 'groupId' | 'mustChangePassword'>): Prisma.UserWhereInput {
+  private buildUserWhere(input: Pick<UserFindManyInput, 'search' | 'groupId' | 'active'>): Prisma.UserWhereInput {
     return {
       ...(input.search ? {
         OR: [
@@ -148,8 +149,8 @@ export class UserRepository {
           },
         },
       } : {}),
-      ...(input.mustChangePassword !== undefined ? {
-        mustChangePassword: input.mustChangePassword,
+      ...(input.active !== undefined ? {
+        active: input.active,
       } : {}),
     };
   }
@@ -166,7 +167,7 @@ export class UserRepository {
   }
 
 
-  async count(input: Pick<UserFindManyInput, 'search' | 'groupId' | 'mustChangePassword'> = {}): Promise<number> {
+  async count(input: Pick<UserFindManyInput, 'search' | 'groupId' | 'active'> = {}): Promise<number> {
     return this.prisma.user.count({
       where: this.buildUserWhere(input),
     });
@@ -197,7 +198,7 @@ export class UserRepository {
         phoneNumber: input.phoneNumber,
         address: input.address,
         password: input.password,
-        mustChangePassword: input.mustChangePassword ?? true,
+        active: input.active ?? false,
       },
     });
   }
@@ -252,26 +253,17 @@ export class UserRepository {
       where: { id: input.userId },
       data: {
         password: input.password,
-        mustChangePassword: false
       },
     });
   }
 
-  async saveRefreshToken(input: { userId: string; refreshToken: string | null }): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: input.userId },
-      data: { refreshToken: input.refreshToken },
-    });
-  }
-
-  async deleteRefreshTokenByUserId(userId: string): Promise<void> {
+  async activateUser(userId: string): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
-      data: {
-        refreshToken: null,
-      },
+      data: { active: true },
     });
   }
+
 }
 
 const prismaService = PrismaService.getInstance();
