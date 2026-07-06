@@ -160,7 +160,7 @@ export class MessageController {
 
       res.write(`event: error\n`);
       res.write(`data: ${JSON.stringify({
-        message: 'Stream failed',
+        message: getStreamErrorMessage(error),
       })}\n\n`);
       res.end();
     }
@@ -202,3 +202,17 @@ export const messageController = new MessageController(
   attachmentService,
   new AiService()
 );
+
+function getStreamErrorMessage(error: unknown): string {
+  if (
+    error instanceof Error
+    && typeof error === 'object'
+    && error !== null
+    && 'isOperational' in error
+    && (error as { isOperational?: boolean }).isOperational
+  ) {
+    return error.message;
+  }
+
+  return 'Stream failed';
+}

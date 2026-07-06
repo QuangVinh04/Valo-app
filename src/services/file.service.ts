@@ -73,13 +73,18 @@ export class FileService {
       })
     );
 
-    const documents = await Promise.all(bufferedFiles.map(async (file, index) => ({
-      name: file.originalname,
-      mime: file.mimetype,
-      size: file.size,
-      url: fileUploads[index].data, // Lấy lại URL gốc của Cloudinary, không cần upload lại [INDEX]
-      text: this.truncateText(await this.extractText(file), maxDocumentChars),
-    })));
+    const documents = await Promise.all(bufferedFiles.map(async (file, index) => {
+      const text = await this.extractText(file);
+      this.assertDocumentTextLength(file.originalname, text);
+
+      return {
+        name: file.originalname,
+        mime: file.mimetype,
+        size: file.size,
+        url: fileUploads[index].data, // Lấy lại URL gốc của Cloudinary, không cần upload lại [INDEX]
+        text,
+      };
+    }));
 
     return {
       documents,
@@ -107,7 +112,7 @@ export class FileService {
    * Chọn bộ xử lý phù hợp để trích xuất văn bản dựa trên loại file.
    */
   private async extractText(file: BufferedUploadedFile): Promise<string> {
-    if (this.isPlainText(file.mimetype)) {
+    if (this.isPlainText(file)) {
       return file.buffer.toString('utf8');
     }
 
@@ -119,10 +124,6 @@ export class FileService {
       return this.extractSpreadsheetText(file);
     }
 
-    if (this.isWordDocument(file)) {
-      return this.extractWordText(file);
-    }
-
     throw new AppError(
       ErrorCode.BAD_REQUEST,
       `Unsupported file type: ${file.originalname}`
@@ -132,12 +133,9 @@ export class FileService {
   /**
    * Kiểm tra MIME type có thuộc nhóm file văn bản đọc trực tiếp được hay không.
    */
-  private isPlainText(mime: string): boolean {
-    return mime.startsWith('text/')
-      || mime === 'application/json'
-      || mime === 'application/xml'
-      || mime === 'application/csv'
-      || mime === 'text/markdown';
+  private isPlainText(file: BufferedUploadedFile): boolean {
+    return file.mimetype === 'text/plain'
+      || file.originalname.toLowerCase().endsWith('.txt');
   }
 
   /**
@@ -148,14 +146,6 @@ export class FileService {
       || file.mimetype === 'application/vnd.ms-excel'
       || file.originalname.toLowerCase().endsWith('.xlsx')
       || file.originalname.toLowerCase().endsWith('.xls');
-  }
-
-  /**
-   * Kiểm tra file có phải tài liệu Word dựa trên MIME type hoặc phần mở rộng.
-   */
-  private isWordDocument(file: BufferedUploadedFile): boolean {
-    return file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      || file.originalname.toLowerCase().endsWith('.docx');
   }
 
   /**
@@ -204,15 +194,6 @@ export class FileService {
   }
 
   /**
-   * Trích xuất văn bản thô từ file Word bằng thư viện mammoth.
-   */
-  private async extractWordText(file: BufferedUploadedFile): Promise<string> {
-    const mammoth = await this.loadOptionalPackage('mammoth');
-    const result = await mammoth.extractRawText({ buffer: file.buffer });
-    return result.value ?? '';
-  }
-
-  /**
    * Nạp thư viện parser khi cần dùng và báo lỗi rõ ràng nếu package bị thiếu.
    */
   private async loadOptionalPackage(packageName: string): Promise<any> {
@@ -227,10 +208,14 @@ export class FileService {
   }
 
   /**
-   * Cắt ngắn văn bản theo giới hạn ký tự để tránh document quá dài.
+   * Báo lỗi rõ ràng nếu nội dung trích xuất vượt quá giới hạn ký tự.
    */
-  private truncateText(text: string, maxLength: number): string {
-    if (text.length <= maxLength) return text;
-    return `${text.slice(0, maxLength)}\n[Content truncated]`;
+  private assertDocumentTextLength(fileName: string, text: string): void {
+    if (text.length <= maxDocumentChars) return;
+
+    throw new AppError(
+      ErrorCode.BAD_REQUEST,
+      `File "${fileName}" exceeds the ${maxDocumentChars.toLocaleString()} character limit. Please upload a shorter file.`
+    );
   }
 }
