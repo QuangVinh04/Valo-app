@@ -18,6 +18,16 @@ const DEFAULT_GROUP_PERMISSION_KEYS = [
   PermissionConstant.CONV_DELETE.key,
 ];
 
+interface GroupMembersPaginatedResult {
+  data: GroupMemberDto;
+  meta: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+  };
+}
+
 export class GroupService {
   private readonly groupRepository: GroupRepository;
   private readonly userRepository: UserRepository;
@@ -149,13 +159,46 @@ export class GroupService {
   /**
   * Lay danh sach thanh vien trong nhom
   */
-  async getGroupMembers(groupId: string): Promise<GroupMemberDto> {
-    const group = await this.groupRepository.findMembersById(groupId);
+  async getGroupMembers(
+    groupId: string,
+    pagination?: PaginationOptions,
+    filters: { search?: string } = {}
+  ): Promise<GroupMemberDto | GroupMembersPaginatedResult> {
+    const normalizedFilters = {
+      search: filters.search?.trim() || undefined,
+    };
+
+    if (!pagination) {
+      const group = await this.groupRepository.findMembersById(groupId);
+      if (!group) {
+        throw new AppError(ErrorCode.GROUP_NOT_FOUND);
+      }
+
+      return GroupMapper.toGroupMemberResponseDto(group);
+    }
+
+    const [group, totalItems] = await Promise.all([
+      this.groupRepository.findMembersPageById(groupId, {
+        skip: pagination.skip,
+        take: pagination.limit,
+        ...normalizedFilters,
+      }),
+      this.groupRepository.countMembers(groupId, normalizedFilters),
+    ]);
+
     if (!group) {
       throw new AppError(ErrorCode.GROUP_NOT_FOUND);
     }
 
-    return GroupMapper.toGroupMemberResponseDto(group);
+    return {
+      data: GroupMapper.toGroupMemberResponseDto(group),
+      meta: {
+        page: pagination.page,
+        limit: pagination.limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / pagination.limit),
+      },
+    };
   }
 
   /**

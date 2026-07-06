@@ -29,12 +29,14 @@ export class AttachmentService {
 
   async getUserAttachments(
     userId: string,
-    pagination: CursorPaginationOptions
+    pagination: CursorPaginationOptions,
+    filters: { search?: string } = {}
   ): Promise<CursorPaginatedResult<AttachmentResponseDto>> {
     const attachments = await this.attachmentRepo.findManyByUserId({
       userId,
       cursor: pagination.cursor,
       take: pagination.limit + 1,
+      search: filters.search,
     });
 
     return buildCursorPaginatedResult(attachments, pagination.limit);

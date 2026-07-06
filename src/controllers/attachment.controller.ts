@@ -29,10 +29,14 @@ export class AttachmentController {
     _next: NextFunction
   ) => {
     const pagination = getCursorPaginationOptions(req.query);
+    const search = typeof req.query.search === 'string' && req.query.search.trim()
+      ? req.query.search.trim()
+      : undefined;
 
     const result = await this.attachmentService.getUserAttachments(
       req.user.userId,
-      pagination
+      pagination,
+      { search }
     );
 
     return sendSuccess(

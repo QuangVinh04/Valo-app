@@ -38,10 +38,19 @@ export class AttachmentRepository {
     userId: string;
     cursor?: string;
     take: number;
+    search?: string;
   }): Promise<AttachmentResponseDto[]> {
     const attachments = await this.prisma.attachment.findMany({
       where: {
         userId: input.userId,
+        ...(input.search
+          ? {
+              fileName: {
+                contains: input.search,
+                mode: 'insensitive',
+              },
+            }
+          : {}),
       },
       ...(input.cursor ? { cursor: { id: input.cursor }, skip: 1 } : {}),
       take: input.take,

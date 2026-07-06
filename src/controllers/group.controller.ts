@@ -82,7 +82,16 @@ export class GroupController {
   getGroupMembers = catchAsync(
     async (req: Request, res: Response<ApiResponse<GroupMemberDto>>, _next: NextFunction) => {
       const id = req.params.id.toString();
-      const result = await this.groupService.getGroupMembers(id);
+      const search = typeof req.query.search === 'string' ? req.query.search : undefined;
+      const shouldPaginate = req.query.page !== undefined || req.query.limit !== undefined || search !== undefined;
+      const result = shouldPaginate
+        ? await this.groupService.getGroupMembers(id, getPaginationOptions(req.query), { search })
+        : await this.groupService.getGroupMembers(id);
+
+      if ('data' in result) {
+        return sendSuccess(res, result.data, 'Group members found', StatusCodes.OK, result.meta);
+      }
+
       return sendSuccess(res, result, 'Group members found', StatusCodes.OK);
     }
   );

@@ -83,6 +83,12 @@ export interface GroupFindManyInput {
   search?: string;
 }
 
+export interface GroupMembersFindInput {
+  skip: number;
+  take: number;
+  search?: string;
+}
+
 export class GroupRepository {
   private readonly prisma: DbClient;
 
@@ -108,6 +114,35 @@ export class GroupRepository {
     return this.prisma.group.findUnique({
       where: { id },
       select: groupMembersSelect,
+    });
+  }
+
+  async findMembersPageById(id: string, input: GroupMembersFindInput): Promise<GroupMembers | null> {
+    return this.prisma.group.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        userGroups: {
+          skip: input.skip,
+          take: input.take,
+          where: this.buildGroupMemberWhere(input),
+          orderBy: {
+            user: {
+              fullName: 'asc',
+            },
+          },
+          select: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
@@ -159,6 +194,28 @@ export class GroupRepository {
     return this.prisma.userGroup.count({
       where: { groupId },
     });
+  }
+
+  countMembers(groupId: string, input: Pick<GroupMembersFindInput, 'search'> = {}) {
+    return this.prisma.userGroup.count({
+      where: {
+        groupId,
+        ...this.buildGroupMemberWhere(input),
+      },
+    });
+  }
+
+  private buildGroupMemberWhere(input: Pick<GroupMembersFindInput, 'search'>): Prisma.UserGroupWhereInput {
+    return {
+      ...(input.search ? {
+        user: {
+          OR: [
+            { fullName: { contains: input.search, mode: 'insensitive' } },
+            { email: { contains: input.search, mode: 'insensitive' } },
+          ],
+        },
+      } : {}),
+    };
   }
 
   async createGroup(input: CreateGroupInput): Promise<GroupIdentity> {
