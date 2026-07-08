@@ -18,21 +18,24 @@ export class MessageRepository {
   }
 
   async create(input: CreateMessageInput) {
-    const message = await this.prisma.message.create({
-      data: {
-        conversationId: input.conversationId,
-        content: input.content,
-        senderType: input.senderType,
-        modelName: input.modelName ?? null,
-      },
-    });
+    const client = this.prisma as PrismaClient
+    return await client.$transaction(async (tx) => {
+      const message = await tx.message.create({
+        data: {
+          conversationId: input.conversationId,
+          content: input.content,
+          senderType: input.senderType,
+          modelName: input.modelName ?? null
+        }
+      });
 
-    await this.prisma.conversation.update({
-      where: { id: input.conversationId },
-      data: { updatedAt: new Date() },
-    });
+      await tx.conversation.update({
+        where: { id: input.conversationId },
+        data: { updatedAt: new Date() }
+      });
 
-    return message;
+      return message;
+    });
   }
 
   async findManyByConversationId(conversationId: string) {

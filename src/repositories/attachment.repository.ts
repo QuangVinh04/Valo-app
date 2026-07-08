@@ -121,6 +121,21 @@ export class AttachmentRepository {
     return count > 0;
   }
 
+  async existsLocalFileByUserId(fileName: string, userId: string): Promise<boolean> {
+    const encodedFileName = encodeURIComponent(fileName);
+    const count = await this.prisma.attachment.count({
+      where: {
+        userId,
+        OR: [
+          { fileUrl: { endsWith: `/api/v1/attachments/files/${encodedFileName}` } },
+          { fileUrl: { endsWith: `/api/v1/attachments/files/${fileName}` } },
+        ],
+      },
+    });
+
+    return count > 0;
+  }
+
 
   async deleteManyByIdsAndUserId(ids: string[], userId: string): Promise<number> {
     if (!ids.length) return 0;

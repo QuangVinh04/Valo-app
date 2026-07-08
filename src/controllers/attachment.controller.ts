@@ -109,6 +109,7 @@ export class AttachmentController {
   ) => {
     const fileNameParam = req.params.fileName;
     const fileName = path.basename(Array.isArray(fileNameParam) ? fileNameParam[0] : fileNameParam);
+    await this.attachmentService.assertLocalFileAccess(req.user.userId, fileName);
 
     return res.sendFile(this.localStorage.getFilePath(fileName));
   });

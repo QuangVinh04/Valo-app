@@ -19,6 +19,8 @@ import logger from '../utils/logger.util.js';
 import type { Request } from 'express';
 import { cloudinaryService, CloudinaryService } from './cloudinary.service.js';
 import { localStorageService, LocalStorageService } from './local-storage.service.js';
+import { ErrorCode } from '../constants/error-code.js';
+import AppError from '../utils/app-error.js';
 
 export class AttachmentService {
   constructor(
@@ -93,6 +95,14 @@ export class AttachmentService {
       deletedCount,
       notFoundIds,
     };
+  }
+
+  async assertLocalFileAccess(userId: string, fileName: string): Promise<void> {
+    const hasAccess = await this.attachmentRepo.existsLocalFileByUserId(fileName, userId);
+
+    if (!hasAccess) {
+      throw new AppError(ErrorCode.ROUTE_NOT_FOUND);
+    }
   }
 
   private async deleteStoredAsset(url?: string | null): Promise<void> {

@@ -206,9 +206,7 @@ export const messageController = new MessageController(
 function getStreamErrorMessage(error: unknown): string {
   if (
     error instanceof Error
-    && typeof error === 'object'
-    && error !== null
-    && 'isOperational' in error
+    && typeof error === 'object' && 'isOperational' in error
     && (error as { isOperational?: boolean }).isOperational
   ) {
     return error.message;

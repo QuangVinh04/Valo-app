@@ -9,6 +9,8 @@ const router = Router();
 
 router.get(
   '/files/:fileName',
+  authenticate,
+  authorize(PermissionConstant.CHAT.key),
   attachmentController.downloadLocalAttachment
 );
 
