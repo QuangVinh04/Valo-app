@@ -45,17 +45,24 @@ model Conversation {
 }
 
 model Message {
-  id             String       @id @default(uuid()) @db.Uuid
-  conversationId String       @db.Uuid
-  senderType     String       @default("user")
+  id             String        @id @default(uuid()) @db.Uuid
+  conversationId String        @db.Uuid
+  senderType     String        @default("user")
+  status         MessageStatus @default(PENDING)
   modelName      String?
-  content        String       @db.Text
+  content        String        @db.Text
   attachments    Attachment[]
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime      @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@map("messages")
+}
+
+enum MessageStatus {
+  PENDING
+  SUCCESS
+  FAILED
 }
 
 model Attachment {

@@ -48,6 +48,7 @@ export class MessageController {
     const abortController = new AbortController();
 
     const chunks: string[] = [];  // Lưu trữ các chunk tạm thời để có thể lưu vào DB sau khi stream kết thúc
+    let pendingUserMessageId: string | undefined;
 
     const handleClientClose = () => {
       abortController.abort();
@@ -63,6 +64,8 @@ export class MessageController {
         payload,
         conversationId
       );
+      pendingUserMessageId = prepared.userMessage.id;
+
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
@@ -120,9 +123,12 @@ export class MessageController {
           await this.messageService.saveAssistantMessage(
             prepared.conversationId,
             partialContent,
-            payload.modelName
+            payload.modelName,
+            'FAILED'
           );
         }
+
+        await this.messageService.updateMessageStatus(prepared.userMessage.id, 'FAILED');
 
         res.end();
         return;
@@ -135,6 +141,7 @@ export class MessageController {
         finalContent,
         payload.modelName
       );
+      await this.messageService.updateMessageStatus(prepared.userMessage.id, 'SUCCESS');
 
       res.write(`event: done\n`);
       res.write(
@@ -152,6 +159,20 @@ export class MessageController {
         conversationId,
         modelName: payload.modelName,
       });
+
+      if (pendingUserMessageId) {
+        await this.messageService.updateMessageStatus(
+          pendingUserMessageId,
+          'FAILED'
+        ).catch((saveError) => {
+          logger.error('Failed to update user message status', {
+            error: saveError,
+            userId,
+            conversationId,
+            modelName: payload.modelName,
+          });
+        });
+      }
 
       if (!res.headersSent) {
         next(error);

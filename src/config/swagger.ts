@@ -235,6 +235,7 @@ export const swaggerDocument = {
           id: { type: 'string' },
           content: { type: 'string', example: 'Xin chao' },
           senderType: { type: 'string', enum: ['user', 'assistant', 'system'] },
+          status: { type: 'string', enum: ['PENDING', 'SUCCESS', 'FAILED'] },
           modelName: { type: 'string', nullable: true, example: 'flowise-agent' },
           createdAt: { type: 'string', format: 'date-time' },
         },

@@ -2,11 +2,13 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../config/prisma.js';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
+export type MessageStatus = 'PENDING' | 'SUCCESS' | 'FAILED';
 
 export interface CreateMessageInput {
   conversationId: string;
   content: string;
   senderType: 'user' | 'assistant' | 'system';
+  status?: MessageStatus;
   modelName?: string | null;
 }
 
@@ -25,6 +27,7 @@ export class MessageRepository {
           conversationId: input.conversationId,
           content: input.content,
           senderType: input.senderType,
+          status: input.status ?? (input.senderType === 'user' ? 'PENDING' : 'SUCCESS'),
           modelName: input.modelName ?? null
         }
       });
@@ -64,6 +67,13 @@ export class MessageRepository {
     });
 
     return messages.reverse();
+  }
+
+  async updateStatus(messageId: string, status: MessageStatus) {
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: { status },
+    });
   }
 
   async findById(messageId: string) {

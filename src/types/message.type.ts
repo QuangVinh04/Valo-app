@@ -25,6 +25,7 @@ export interface MessageResponseDto {
   id: string;
   content: string;
   senderType: string;
+  status?: 'PENDING' | 'SUCCESS' | 'FAILED';
   modelName: string | null;
   createdAt: Date;
   fileUploads?: FileUploadDto[];

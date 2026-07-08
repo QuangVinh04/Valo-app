@@ -1,0 +1,7 @@
+CREATE TYPE "MessageStatus" AS ENUM ('PENDING', 'SUCCESS', 'FAILED');
+
+ALTER TABLE "messages"
+ADD COLUMN "status" "MessageStatus" NOT NULL DEFAULT 'SUCCESS';
+
+ALTER TABLE "messages"
+ALTER COLUMN "status" SET DEFAULT 'PENDING';

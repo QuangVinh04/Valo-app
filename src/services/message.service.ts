@@ -1,6 +1,6 @@
 import { ConversationRepository, conversationRepository } from '../repositories/conversation.repository.js';
 import { UserRepository, userRepository } from '../repositories/user.repository.js';
-import { MessageRepository, messageRepository } from '../repositories/message.repository.js';
+import { MessageRepository, messageRepository, type MessageStatus } from '../repositories/message.repository.js';
 import { ErrorCode } from '../constants/error-code.js';
 import AppError from '../utils/app-error.js';
 import { MessageResponseDto, SendMessageRequestDto } from '../types/message.type.js';
@@ -15,6 +15,12 @@ const maxPromptContextChars = 30000;
 export type ExportMessageDocxResult = {
   fileName: string;
   buffer: Buffer;
+};
+
+export type PreparedMessageStream = {
+  conversationId: string;
+  history: AiChatMessage[];
+  userMessage: MessageResponseDto;
 };
 
 export class MessageService {
@@ -35,16 +41,16 @@ export class MessageService {
 
   /**
    * Chuẩn bị dữ liệu cho luồng chat: kiểm tra quyền sở hữu conversation, tạo conversation nếu cần,
-   * lưu tin nhắn user và chuẩn bị metadata/context để gọi AI.
+   * lưu tin nhắn user ở trạng thái PENDING và chuẩn bị metadata/context để gọi AI.
    */
   async prepareMessageStream(
     userId: string,
     payload: SendMessageRequestDto,
     conversationId?: string,
-  ) {
+  ): Promise<PreparedMessageStream> {
 
-    let targetConversationId: string;
     let history: AiChatMessage[] = [];
+    let targetConversationId: string;
 
     if (conversationId) {
       const conversation = await this.conversationRepo.getByIdAndUserId(conversationId, userId);
@@ -54,10 +60,13 @@ export class MessageService {
 
       //TODO: Bkav HoanNTh: dùng singleton
       // Bkav VinhTQ: Done
-
       targetConversationId = conversation.id;
-      const recentMessages = await this.messageRepo.findRecentByConversationId(targetConversationId, 10);
+      const recentMessages = await this.messageRepo.findRecentByConversationId(conversation.id, 10);
       history = recentMessages.flatMap((message): AiChatMessage[] => {
+        if (message.status !== 'SUCCESS') {
+          return [];
+        }
+
         if (
           message.senderType !== 'system'
           && message.senderType !== 'user'
@@ -88,6 +97,7 @@ export class MessageService {
       conversationId: targetConversationId,
       content: payload.question,
       senderType: 'user',
+      status: 'PENDING',
       modelName: payload.modelName,
     });
 
@@ -101,16 +111,24 @@ export class MessageService {
   async saveAssistantMessage(
     conversationId: string,
     content: string,
-    modelName: string
+    modelName: string,
+    status: MessageStatus = 'SUCCESS'
   ): Promise<MessageResponseDto> {
     const assistantMessage = await this.messageRepo.create({
       conversationId,
       content,
       senderType: 'assistant',
+      status,
       modelName,
     });
 
     return MessageMapper.toMessageResponse(assistantMessage);
+  }
+
+  async updateMessageStatus(messageId: string, status: MessageStatus): Promise<MessageResponseDto> {
+    const message = await this.messageRepo.updateStatus(messageId, status);
+
+    return MessageMapper.toMessageResponse(message);
   }
 
   buildAiQuestion(
@@ -178,8 +196,10 @@ export class MessageService {
   }
 
   private sanitizeExportFileName(fileName: string): string {
-    const sanitized = fileName
-      .replace(/[<>:"/\\|?*\x00-\x1F]/g, '-')
+    const sanitized = Array.from(fileName, (char) => (
+      char.charCodeAt(0) <= 31 || '<>:"/\\|?*'.includes(char) ? '-' : char
+    ))
+      .join('')
       .replace(/\s+/g, ' ')
       .trim();
 
