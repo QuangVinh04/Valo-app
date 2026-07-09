@@ -9,10 +9,11 @@ export async function seedGroups(prisma: PrismaClient): Promise<void> {
     if (!adminGroup) {
 
         const adminPermissionKeys = PermissionConstant.ALL.map((item) => item.key);
-        await groupRepository.createGroup({
+        await groupRepository.createSystemGroup({
             name: 'admin',
             description: 'Administrators with full access',
-            permissions: adminPermissionKeys
+            permissions: adminPermissionKeys,
+
         });
     }
 
@@ -26,7 +27,7 @@ export async function seedGroups(prisma: PrismaClient): Promise<void> {
             PermissionConstant.CONV_UPDATE.key,
             PermissionConstant.CONV_DELETE.key
         ];
-        await groupRepository.createGroup({
+        await groupRepository.createSystemGroup({
             name: 'user',
             description: 'Regular users with limited access',
             permissions: userPermissionKeys

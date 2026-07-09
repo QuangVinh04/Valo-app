@@ -47,6 +47,8 @@ const groupListSelect = {
 
 const groupIdSelect = {
   id: true,
+  name: true,
+  isSystem: true
 } satisfies Prisma.GroupSelect;
 
 export type GroupDetail = Prisma.GroupGetPayload<{
@@ -99,25 +101,28 @@ export class GroupRepository {
   async findById(id: string): Promise<GroupIdentity | null> {
     return this.prisma.group.findUnique({
       where: { id },
-      select: groupIdSelect,
+      select: groupIdSelect
     });
   }
 
   async findDetailById(id: string): Promise<GroupDetail | null> {
     return this.prisma.group.findUnique({
       where: { id },
-      select: groupDetailSelect,
+      select: groupDetailSelect
     });
   }
 
   async findMembersById(id: string): Promise<GroupMembers | null> {
     return this.prisma.group.findUnique({
       where: { id },
-      select: groupMembersSelect,
+      select: groupMembersSelect
     });
   }
 
-  async findMembersPageById(id: string, input: GroupMembersFindInput): Promise<GroupMembers | null> {
+  async findMembersPageById(
+    id: string,
+    input: GroupMembersFindInput
+  ): Promise<GroupMembers | null> {
     return this.prisma.group.findUnique({
       where: { id },
       select: {
@@ -129,27 +134,27 @@ export class GroupRepository {
           where: this.buildGroupMemberWhere(input),
           orderBy: {
             user: {
-              fullName: 'asc',
-            },
+              fullName: 'asc'
+            }
           },
           select: {
             user: {
               select: {
                 id: true,
                 fullName: true,
-                email: true,
-              },
-            },
-          },
-        },
-      },
+                email: true
+              }
+            }
+          }
+        }
+      }
     });
   }
 
   async findByName(name: string): Promise<GroupIdentity | null> {
     return this.prisma.group.findFirst({
       where: { name },
-      select: groupIdSelect,
+      select: groupIdSelect
     });
   }
 
@@ -157,20 +162,22 @@ export class GroupRepository {
     return this.prisma.group.findFirst({
       where: {
         name,
-        NOT: { id },
+        NOT: { id }
       },
-      select: groupIdSelect,
+      select: groupIdSelect
     });
   }
 
   private buildGroupWhere(input: Pick<GroupFindManyInput, 'search'>): Prisma.GroupWhereInput {
     return {
-      ...(input.search ? {
-        OR: [
-          { name: { contains: input.search, mode: 'insensitive' } },
-          { description: { contains: input.search, mode: 'insensitive' } },
-        ],
-      } : {}),
+      ...(input.search
+        ? {
+            OR: [
+              { name: { contains: input.search, mode: 'insensitive' } },
+              { description: { contains: input.search, mode: 'insensitive' } }
+            ]
+          }
+        : {})
     };
   }
 
@@ -180,19 +187,19 @@ export class GroupRepository {
       take: input.take,
       where: this.buildGroupWhere(input),
       select: groupListSelect,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     });
   }
 
   count(input: Pick<GroupFindManyInput, 'search'> = {}) {
     return this.prisma.group.count({
-      where: this.buildGroupWhere(input),
+      where: this.buildGroupWhere(input)
     });
   }
 
   countUsers(groupId: string) {
     return this.prisma.userGroup.count({
-      where: { groupId },
+      where: { groupId }
     });
   }
 
@@ -200,21 +207,25 @@ export class GroupRepository {
     return this.prisma.userGroup.count({
       where: {
         groupId,
-        ...this.buildGroupMemberWhere(input),
-      },
+        ...this.buildGroupMemberWhere(input)
+      }
     });
   }
 
-  private buildGroupMemberWhere(input: Pick<GroupMembersFindInput, 'search'>): Prisma.UserGroupWhereInput {
+  private buildGroupMemberWhere(
+    input: Pick<GroupMembersFindInput, 'search'>
+  ): Prisma.UserGroupWhereInput {
     return {
-      ...(input.search ? {
-        user: {
-          OR: [
-            { fullName: { contains: input.search, mode: 'insensitive' } },
-            { email: { contains: input.search, mode: 'insensitive' } },
-          ],
-        },
-      } : {}),
+      ...(input.search
+        ? {
+            user: {
+              OR: [
+                { fullName: { contains: input.search, mode: 'insensitive' } },
+                { email: { contains: input.search, mode: 'insensitive' } }
+              ]
+            }
+          }
+        : {})
     };
   }
 
@@ -224,28 +235,38 @@ export class GroupRepository {
         name: input.name,
         description: input.description,
         permissions: [...(input.permissions ?? [])],
+        isSystem: false
       },
-      select: groupIdSelect,
+      select: groupIdSelect
     });
   }
 
-  async updateGroup(
-    id: string,
-    input: UpdateGroupInput
-  ): Promise<Group> {
+  async createSystemGroup(input: CreateGroupInput): Promise<GroupIdentity> {
+    return this.prisma.group.create({
+      data: {
+        name: input.name,
+        description: input.description,
+        permissions: [...(input.permissions ?? [])],
+        isSystem: true
+      },
+      select: groupIdSelect
+    });
+  }
+
+  async updateGroup(id: string, input: UpdateGroupInput): Promise<Group> {
     return this.prisma.group.update({
       where: { id },
       data: {
         name: input.name,
         description: input.description,
-        ...(input.permissions !== undefined ? { permissions: [...input.permissions] } : {}),
-      },
+        ...(input.permissions !== undefined ? { permissions: [...input.permissions] } : {})
+      }
     });
   }
 
   async deleteGroup(id: string): Promise<void> {
     await this.prisma.group.delete({
-      where: { id },
+      where: { id }
     });
   }
 
@@ -255,36 +276,34 @@ export class GroupRepository {
     const result = await this.prisma.group.deleteMany({
       where: {
         id: {
-          in: [...ids],
-        },
-      },
+          in: [...ids]
+        }
+      }
     });
 
     return result.count;
   }
 
-  async findExistingIdsByIds(ids: readonly string[]): Promise<string[]> {
+  async findManyByIds(ids: readonly string[]): Promise<GroupIdentity[]> {
     if (ids.length === 0) return [];
 
-    const groups = await this.prisma.group.findMany({
+    return this.prisma.group.findMany({
       where: {
         id: {
-          in: [...ids],
-        },
+          in: [...ids]
+        }
       },
-      select: groupIdSelect,
+      select: groupIdSelect
     });
-
-    return groups.map((group) => group.id);
   }
 
   async addMembers(groupId: string, userIds: readonly string[]) {
     return this.prisma.userGroup.createMany({
       data: userIds.map((userId) => ({
         groupId,
-        userId,
+        userId
       })),
-      skipDuplicates: true,
+      skipDuplicates: true
     });
   }
 
@@ -293,9 +312,9 @@ export class GroupRepository {
       where: {
         groupId,
         userId: {
-          in: [...userIds],
-        },
-      },
+          in: [...userIds]
+        }
+      }
     });
   }
 }

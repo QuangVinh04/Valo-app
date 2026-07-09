@@ -87,6 +87,7 @@ model Group {
   name        String      @unique
   description String?
   permissions String[]    @default([])
+  isSystem    Boolean     @default(false)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   userGroups  UserGroup[]

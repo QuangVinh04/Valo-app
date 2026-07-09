@@ -30,27 +30,26 @@ export class UserService {
   /**
    * Lấy danh sách người dùng theo phân trang và chuyển dữ liệu sang DTO an toàn.
    */
-  async getUsers(pagination: PaginationOptions, filters: UserListFilters = {}): Promise<PaginatedResult<UserListItemDto>> {
+  async getUsers(
+    pagination: PaginationOptions,
+    filters: UserListFilters = {}
+  ): Promise<PaginatedResult<UserListItemDto>> {
     const normalizedFilters = {
       search: filters.search?.trim() || undefined,
       groupId: filters.groupId?.trim() || undefined,
-      active: filters.active,
+      active: filters.active
     };
 
     const [users, totalItems] = await Promise.all([
       this.userRepo.findMany({
         skip: pagination.skip,
         take: pagination.limit,
-        ...normalizedFilters,
+        ...normalizedFilters
       }),
-      this.userRepo.count(normalizedFilters),
+      this.userRepo.count(normalizedFilters)
     ]);
 
-    return buildPaginatedResult(
-      users.map(UserMapper.toUserListItemDto),
-      totalItems,
-      pagination
-    );
+    return buildPaginatedResult(users.map(UserMapper.toUserListItemDto), totalItems, pagination);
   }
 
   /**
@@ -83,7 +82,7 @@ export class UserService {
       phoneNumber: payload.phoneNumber?.trim() || null,
       address: payload.address?.trim() || null,
       password: await hashString(payload.password),
-      active: false,
+      active: false
     });
 
     return { id: user.id };
@@ -106,8 +105,10 @@ export class UserService {
 
     const updatedUser = await this.userRepo.updateUser(id, {
       fullName: payload.fullName?.trim(),
-      ...(payload.phoneNumber !== undefined ? { phoneNumber: payload.phoneNumber.trim() || null } : {}),
-      ...(payload.address !== undefined ? { address: payload.address.trim() || null } : {}),
+      ...(payload.phoneNumber !== undefined
+        ? { phoneNumber: payload.phoneNumber.trim() || null }
+        : {}),
+      ...(payload.address !== undefined ? { address: payload.address.trim() || null } : {})
     });
 
     return UserMapper.toUserUpdateResponseDto(updatedUser);
@@ -129,7 +130,6 @@ export class UserService {
     return true;
   }
 
-
   /**
    * Cập nhật thiết lập cá nhân của người dùng hiện tại như giao diện và ngôn ngữ.
    */
@@ -150,9 +150,6 @@ export class UserService {
     };
   }
 
-
-
-
   /**
    * Xóa người dùng sau khi xác nhận người dùng tồn tại.
    */
@@ -163,19 +160,38 @@ export class UserService {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
 
+    const isDeletingAdmin = await this.userRepo.countActiveAdminsByIds([id]);
+
+    if (isDeletingAdmin > 0) {
+      const totalActiveAdmins = await this.userRepo.countActiveAdmins();
+
+      if (totalActiveAdmins <= 1) {
+        throw new AppError(ErrorCode.CANNOT_DELETE_LAST_ADMIN);
+      }
+    }
+
     await this.userRepo.deleteUser(id);
   }
 
   async deleteUsers(ids: string[]): Promise<BulkDeleteUsersResponseDto> {
     const uniqueIds = [...new Set(ids)];
+
     const existingIds = await this.userRepo.findExistingIdsByIds(uniqueIds);
     const existingIdSet = new Set(existingIds);
     const notFoundIds = uniqueIds.filter((id) => !existingIdSet.has(id));
+
+    const totalActiveAdmins = await this.userRepo.countActiveAdmins();
+    const deletingAdminCount = await this.userRepo.countActiveAdminsByIds(existingIds);
+
+    if (deletingAdminCount > 0 && totalActiveAdmins - deletingAdminCount < 1) {
+      throw new AppError(ErrorCode.CANNOT_DELETE_LAST_ADMIN);
+    }
+
     const deletedCount = await this.userRepo.deleteManyByIds(existingIds);
 
     return {
       deletedCount,
-      notFoundIds,
+      notFoundIds
     };
   }
 
@@ -185,15 +201,14 @@ export class UserService {
   private async ensureGroupsExist(groupIds: string[]): Promise<string[]> {
     const ids = [...new Set(groupIds.map((id) => id.trim()))].filter(Boolean);
 
-    const existingIds = await this.groupRepo.findExistingIdsByIds(ids);
+    const existingGroups = await this.groupRepo.findManyByIds(ids);
 
-    if (existingIds.length !== ids.length) {
+    if (existingGroups.length !== ids.length) {
       throw new AppError(ErrorCode.GROUP_NOT_FOUND);
     }
 
     return ids;
   }
-
 }
 
 

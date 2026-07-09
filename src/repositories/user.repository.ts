@@ -85,24 +85,22 @@ export class UserRepository {
 
   async findByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
-      where: { email },
+      where: { email }
     });
   }
 
   async findById(id: string): Promise<User | null> {
     return this.prisma.user.findUnique({
-      where: { id },
+      where: { id }
     });
   }
-
 
   async findDetailById(id: string): Promise<UserDetail | null> {
     return this.prisma.user.findUnique({
       where: { id },
-      select: userDetailSelect,
+      select: userDetailSelect
     });
   }
-
 
   async findPermissionKeysByUserId(id: string): Promise<string[] | null> {
     const user = await this.prisma.user.findUnique({
@@ -112,49 +110,49 @@ export class UserRepository {
           select: {
             group: {
               select: {
-                permissions: true,
-              },
-            },
-          },
-        },
-      },
+                permissions: true
+              }
+            }
+          }
+        }
+      }
     });
 
     if (!user) {
       return null;
     }
 
-    return [
-      ...new Set(
-        user.userGroups.flatMap((userGroup) =>
-          userGroup.group.permissions
-        )
-      ),
-    ];
+    return [...new Set(user.userGroups.flatMap((userGroup) => userGroup.group.permissions))];
   }
 
-
-  private buildUserWhere(input: Pick<UserFindManyInput, 'search' | 'groupId' | 'active'>): Prisma.UserWhereInput {
+  private buildUserWhere(
+    input: Pick<UserFindManyInput, 'search' | 'groupId' | 'active'>
+  ): Prisma.UserWhereInput {
     return {
-      ...(input.search ? {
-        OR: [
-          { fullName: { contains: input.search, mode: 'insensitive' } },
-          { email: { contains: input.search, mode: 'insensitive' } },
-        ],
-      } : {}),
-      ...(input.groupId ? {
-        userGroups: {
-          some: {
-            groupId: input.groupId,
-          },
-        },
-      } : {}),
-      ...(input.active !== undefined ? {
-        active: input.active,
-      } : {}),
+      ...(input.search
+        ? {
+            OR: [
+              { fullName: { contains: input.search, mode: 'insensitive' } },
+              { email: { contains: input.search, mode: 'insensitive' } }
+            ]
+          }
+        : {}),
+      ...(input.groupId
+        ? {
+            userGroups: {
+              some: {
+                groupId: input.groupId
+              }
+            }
+          }
+        : {}),
+      ...(input.active !== undefined
+        ? {
+            active: input.active
+          }
+        : {})
     };
   }
-
 
   async findMany(input: UserFindManyInput): Promise<UserListItem[]> {
     return this.prisma.user.findMany({
@@ -162,17 +160,17 @@ export class UserRepository {
       take: input.take,
       where: this.buildUserWhere(input),
       select: userListSelect,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     });
   }
 
-
-  async count(input: Pick<UserFindManyInput, 'search' | 'groupId' | 'active'> = {}): Promise<number> {
+  async count(
+    input: Pick<UserFindManyInput, 'search' | 'groupId' | 'active'> = {}
+  ): Promise<number> {
     return this.prisma.user.count({
-      where: this.buildUserWhere(input),
+      where: this.buildUserWhere(input)
     });
   }
-
 
   async findExistingIdsByIds(ids: readonly string[]): Promise<string[]> {
     if (ids.length === 0) return [];
@@ -189,6 +187,38 @@ export class UserRepository {
     return users.map((user) => user.id);
   }
 
+  async countActiveAdmins(): Promise<number> {
+    return this.prisma.user.count({
+      where: {
+        active: true,
+        userGroups: {
+          some: {
+            group: {
+              name: 'admin'
+            }
+          }
+        }
+      }
+    });
+  }
+
+  async countActiveAdminsByIds(ids: string[]): Promise<number> {
+    return this.prisma.user.count({
+      where: {
+        id: {
+          in: ids
+        },
+        active: true,
+        userGroups: {
+          some: {
+            group: {
+              name: 'admin'
+            }
+          }
+        }
+      }
+    });
+  }
 
   async createUser(input: CreateUserInput): Promise<User> {
     return this.prisma.user.create({
@@ -198,16 +228,15 @@ export class UserRepository {
         phoneNumber: input.phoneNumber,
         address: input.address,
         password: input.password,
-        active: input.active ?? false,
-      },
+        active: input.active ?? false
+      }
     });
   }
-
 
   async updateUser(id: string, input: UpdateUserInput): Promise<User> {
     return this.prisma.user.update({
       where: { id },
-      data: input,
+      data: input
     });
   }
 
@@ -215,22 +244,22 @@ export class UserRepository {
     await this.prisma.userGroup.createMany({
       data: groupIds.map((groupId) => ({
         userId,
-        groupId,
+        groupId
       })),
-      skipDuplicates: true,
+      skipDuplicates: true
     });
   }
 
   async updateSettings(id: string, settings: UserSettingsInput): Promise<void> {
     await this.prisma.user.update({
       where: { id },
-      data: { settings: settings as unknown as Prisma.InputJsonObject },
+      data: { settings: settings as unknown as Prisma.InputJsonObject }
     });
   }
 
   async deleteUser(id: string): Promise<void> {
     await this.prisma.user.delete({
-      where: { id },
+      where: { id }
     });
   }
 
@@ -240,9 +269,9 @@ export class UserRepository {
     const result = await this.prisma.user.deleteMany({
       where: {
         id: {
-          in: [...ids],
-        },
-      },
+          in: [...ids]
+        }
+      }
     });
 
     return result.count;
@@ -252,18 +281,17 @@ export class UserRepository {
     await this.prisma.user.update({
       where: { id: input.userId },
       data: {
-        password: input.password,
-      },
+        password: input.password
+      }
     });
   }
 
   async activateUser(userId: string): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
-      data: { active: true },
+      data: { active: true }
     });
   }
-
 }
 
 const prismaService = PrismaService.getInstance();

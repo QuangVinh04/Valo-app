@@ -10,6 +10,7 @@ import {
 } from '../utils/pagination.util.js';
 import { PermissionConstant } from '../constants/permission.constant.js';
 
+
 const DEFAULT_GROUP_PERMISSION_KEYS = [
   PermissionConstant.CHAT.key,
   PermissionConstant.CONV_CREATE.key,
@@ -42,14 +43,14 @@ export class GroupService {
    */
   async getGroups(pagination: PaginationOptions, filters: { search?: string } = {}): Promise<any> {
     const normalizedFilters = {
-      search: filters.search?.trim() || undefined,
+      search: filters.search?.trim() || undefined
     };
 
     const [groups, totalItems] = await Promise.all([
       this.groupRepository.findMany({
         skip: pagination.skip,
         take: pagination.limit,
-        ...normalizedFilters,
+        ...normalizedFilters
       }),
       this.groupRepository.count(normalizedFilters)
     ]);
@@ -128,7 +129,6 @@ export class GroupService {
     return GroupMapper.toUpdateGroupResponseDto(updatedGroup);
   }
 
-
   /**
    * Xóa nhóm sau khi xác nhận nhóm tồn tại.
    */
@@ -137,35 +137,49 @@ export class GroupService {
     if (!group) {
       throw new AppError(ErrorCode.GROUP_NOT_FOUND);
     }
+    if (group.isSystem) {
+      throw new AppError(ErrorCode.CANNOT_DELETE_SYSTEM_GROUP);
+    }
 
     await this.groupRepository.deleteGroup(id);
   }
 
+
+
   async deleteGroups(ids: string[]): Promise<BulkDeleteGroupsResponseDto> {
     const uniqueIds = this.normalizeIds(ids);
-    const existingIds = await this.groupRepository.findExistingIdsByIds(uniqueIds);
-    const existingIdSet = new Set(existingIds);
+
+    const existingGroups = await this.groupRepository.findManyByIds(uniqueIds);
+
+    const existingIdSet = new Set(existingGroups.map((group) => group.id));
     const notFoundIds = uniqueIds.filter((id) => !existingIdSet.has(id));
-    const deletedCount = await this.groupRepository.deleteManyByIds(existingIds);
+
+    const systemGroups = existingGroups.filter((group) => group.isSystem);
+
+    if (systemGroups.length > 0) {
+      throw new AppError(ErrorCode.CANNOT_DELETE_SYSTEM_GROUP);
+    }
+
+    const deletedCount = await this.groupRepository.deleteManyByIds(
+      existingGroups.map((group) => group.id)
+    );
 
     return {
       deletedCount,
-      notFoundIds,
+      notFoundIds
     };
   }
 
-
-
   /**
-  * Lay danh sach thanh vien trong nhom
-  */
+   * Lay danh sach thanh vien trong nhom
+   */
   async getGroupMembers(
     groupId: string,
     pagination?: PaginationOptions,
     filters: { search?: string } = {}
   ): Promise<GroupMemberDto | GroupMembersPaginatedResult> {
     const normalizedFilters = {
-      search: filters.search?.trim() || undefined,
+      search: filters.search?.trim() || undefined
     };
 
     if (!pagination) {
@@ -181,9 +195,9 @@ export class GroupService {
       this.groupRepository.findMembersPageById(groupId, {
         skip: pagination.skip,
         take: pagination.limit,
-        ...normalizedFilters,
+        ...normalizedFilters
       }),
-      this.groupRepository.countMembers(groupId, normalizedFilters),
+      this.groupRepository.countMembers(groupId, normalizedFilters)
     ]);
 
     if (!group) {
@@ -196,8 +210,8 @@ export class GroupService {
         page: pagination.page,
         limit: pagination.limit,
         totalItems,
-        totalPages: Math.ceil(totalItems / pagination.limit),
-      },
+        totalPages: Math.ceil(totalItems / pagination.limit)
+      }
     };
   }
 
@@ -227,23 +241,31 @@ export class GroupService {
   }
 
   /**
-   * Gỡ người dùng khỏi nhóm 
+   * Gỡ người dùng khỏi nhóm
    */
   async removeMembers(groupId: string, userIds: string[]) {
+    const normalizedUserIds = this.normalizeIds(userIds);
 
-      const normalizedUserIds = this.normalizeIds(userIds);
+    const group = await this.groupRepository.findById(groupId);
+    if (!group) {
+      throw new AppError(ErrorCode.GROUP_NOT_FOUND);
+    }
 
-      const group = await this.groupRepository.findById(groupId);
-      if (!group) {
-        throw new AppError(ErrorCode.GROUP_NOT_FOUND);
+    await this.ensureUsersExist(this.userRepository, normalizedUserIds);
+
+    if (group.name === 'admin' && group.isSystem) {
+      const totalActiveAdmins = await this.userRepository.countActiveAdmins();
+      const removingActiveAdmins =
+        await this.userRepository.countActiveAdminsByIds(normalizedUserIds);
+
+      if (totalActiveAdmins - removingActiveAdmins < 1) {
+        throw new AppError(ErrorCode.CANNOT_DELETE_LAST_ADMIN);
       }
+    }
 
-      await this.ensureUsersExist(this.userRepository, normalizedUserIds);
+    await this.groupRepository.removeMembers(groupId, normalizedUserIds);
 
-      await this.groupRepository.removeMembers(groupId, normalizedUserIds);
-
-      const result = await this.groupRepository.findMembersById(groupId);
-
+    const result = await this.groupRepository.findMembersById(groupId);
 
     return GroupMapper.toGroupMemberResponseDto(result);
   }
@@ -252,11 +274,12 @@ export class GroupService {
    * Chuẩn hóa danh sách quyền, tự động thêm các quyền cơ bản cho nhóm mới hoặc nhóm cập nhật.
    */
   private normalizePermissionKeys(permissionKeys?: string[]): string[] {
-    return [...new Set([
-      ...DEFAULT_GROUP_PERMISSION_KEYS,
-      ...(permissionKeys ?? []).map((permissionKey) => permissionKey.trim())
-    ])]
-      .filter(Boolean);
+    return [
+      ...new Set([
+        ...DEFAULT_GROUP_PERMISSION_KEYS,
+        ...(permissionKeys ?? []).map((permissionKey) => permissionKey.trim())
+      ])
+    ].filter(Boolean);
   }
 
   /**
@@ -269,7 +292,10 @@ export class GroupService {
   /**
    * Đảm bảo toàn bộ userId đều tồn tại trước khi thay đổi thành viên nhóm.
    */
-  private async ensureUsersExist(userRepo: UserRepository, userIds: readonly string[]): Promise<void> {
+  private async ensureUsersExist(
+    userRepo: UserRepository,
+    userIds: readonly string[]
+  ): Promise<void> {
     const existingUserIds = await userRepo.findExistingIdsByIds(userIds);
     const existingUserIdSet = new Set(existingUserIds);
     const hasMissingUser = userIds.some((userId) => !existingUserIdSet.has(userId));
@@ -278,7 +304,6 @@ export class GroupService {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
   }
-
 }
 
 export const groupService = new GroupService(groupRepository, userRepository);

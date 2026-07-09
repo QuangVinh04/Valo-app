@@ -83,16 +83,25 @@ export const ErrorCode = {
     statusCode: StatusCodes.TOO_MANY_REQUESTS
   },
 
+  CANNOT_DELETE_LAST_ADMIN: {
+    message: 'Cannot delete the last admin user',
+    statusCode: StatusCodes.BAD_REQUEST
+  },
+
   // Group
 
   GROUP_NOT_FOUND: {
     message: 'Group not found',
     statusCode: StatusCodes.NOT_FOUND
   },
-  
+
   GROUP_NAME_ALREADY_IN_USE: {
     message: 'Group name already in use',
     statusCode: StatusCodes.CONFLICT
+  },
+  CANNOT_DELETE_SYSTEM_GROUP: {
+    message: 'Cannot delete system group',
+    statusCode: StatusCodes.BAD_REQUEST
   },
 
   // Conversation & message
@@ -111,5 +120,4 @@ export const ErrorCode = {
     message: 'File exceeds 10MB',
     statusCode: StatusCodes.BAD_REQUEST
   }
-
 } as const;
