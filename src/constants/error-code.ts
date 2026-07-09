@@ -87,6 +87,11 @@ export const ErrorCode = {
     message: 'Cannot delete the last admin user',
     statusCode: StatusCodes.BAD_REQUEST
   },
+  
+  AI_TIMEOUT: {
+    message: 'AI response timeout',
+    statusCode: StatusCodes.GATEWAY_TIMEOUT
+  },
 
   // Group
 

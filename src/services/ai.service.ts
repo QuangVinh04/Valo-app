@@ -7,6 +7,9 @@ import FlowiseProvider from './ai/flowise.provider.js';
 import GroqProvider from './ai/groq.provider.js';
 
 
+const defaultAiStreamTimeoutMs = 120000;
+
+
 export class AiService {
   private readonly providers: Map<string, AiProvider>;
 
@@ -35,14 +38,57 @@ export class AiService {
       );
     }
 
-    const aiStream = provider.stream(
-      question,
-      config.modelName,
-      options
-    );
+    const timeoutMs = getAiStreamTimeoutMs();
+    const streamAbortController = new AbortController();
+    let timedOut = false;
+    let clientAborted = Boolean(options.signal?.aborted);
 
-    for await (const chunk of aiStream) {
-      yield chunk;
+    if (clientAborted) {
+      return;
+    }
+
+    const handleClientAbort = () => {
+      clientAborted = true;
+      streamAbortController.abort();
+    };
+
+    options.signal?.addEventListener('abort', handleClientAbort, { once: true });
+
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      streamAbortController.abort();
+    }, timeoutMs);
+
+    try {
+      const aiStream = provider.stream(
+        question,
+        config.modelName,
+        {
+          ...options,
+          signal: streamAbortController.signal,
+        }
+      );
+
+      for await (const chunk of aiStream) {
+        yield chunk;
+      }
+
+      if (timedOut) {
+        throw new AppError(ErrorCode.AI_TIMEOUT);
+      }
+    } catch (error) {
+      if (timedOut) {
+        throw new AppError(ErrorCode.AI_TIMEOUT);
+      }
+
+      if (clientAborted) {
+        return;
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+      options.signal?.removeEventListener('abort', handleClientAbort);
     }
   }
 }
@@ -61,4 +107,10 @@ function createDefaultProviders(): AiProvider[] {
   }
 
   return providers;
+}
+
+function getAiStreamTimeoutMs(): number {
+  return Number.isFinite(env.AI_STREAM_TIMEOUT_MS) && env.AI_STREAM_TIMEOUT_MS > 0
+    ? env.AI_STREAM_TIMEOUT_MS
+    : defaultAiStreamTimeoutMs;
 }

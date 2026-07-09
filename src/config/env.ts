@@ -19,6 +19,7 @@ const env = {
   MAIL_PASS: process.env.SMTP_PASS,
   MAIL_FROM: process.env.SMTP_FROM,
   AI_PROVIDER: process.env.AI_PROVIDER || 'flowise',
+  AI_STREAM_TIMEOUT_MS: Number(process.env.AI_STREAM_TIMEOUT_MS || 120000),
   GROQ_API_KEY: process.env.GROQ_API_KEY,
   GROQ_BASE_URL: process.env.GROQ_BASE_URL || 'https://api.groq.com',
   FLOWISE_API_KEY: process.env.FLOWISE_API_KEY,
