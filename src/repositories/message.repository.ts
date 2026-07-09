@@ -61,7 +61,10 @@ export class MessageRepository {
 
   async findRecentByConversationId(conversationId: string, take = 10) {
     const messages = await this.prisma.message.findMany({
-      where: { conversationId },
+      where: {
+        conversationId,
+        status: 'SUCCESS'
+      },
       orderBy: { createdAt: 'desc' },
       take,
     });
@@ -76,9 +79,31 @@ export class MessageRepository {
     });
   }
 
+  async updateContentAndStatus(
+    messageId: string,
+    content: string,
+    status: MessageStatus
+  ) {
+    const client = this.prisma as PrismaClient;
+
+    return client.$transaction(async (tx) => {
+      const message = await tx.message.update({
+        where: { id: messageId },
+        data: { content, status },
+      });
+
+      await tx.conversation.update({
+        where: { id: message.conversationId },
+        data: { updatedAt: new Date() },
+      });
+
+      return message;
+    });
+  }
+
   async findById(messageId: string) {
     return this.prisma.message.findUnique({
-      where: { id: messageId},
+      where: { id: messageId },
     })
 
   }

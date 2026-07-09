@@ -21,6 +21,7 @@ export type PreparedMessageStream = {
   conversationId: string;
   history: AiChatMessage[];
   userMessage: MessageResponseDto;
+  assistantMessage: MessageResponseDto;
 };
 
 export class MessageService {
@@ -41,7 +42,8 @@ export class MessageService {
 
   /**
    * Chuẩn bị dữ liệu cho luồng chat: kiểm tra quyền sở hữu conversation, tạo conversation nếu cần,
-   * lưu tin nhắn user ở trạng thái PENDING và chuẩn bị metadata/context để gọi AI.
+   * lưu tin nhắn user ở trạng thái SUCCESS, tạo tin nhắn assistant PENDING
+   * và chuẩn bị metadata/context để gọi AI.
    */
   async prepareMessageStream(
     userId: string,
@@ -63,9 +65,6 @@ export class MessageService {
       targetConversationId = conversation.id;
       const recentMessages = await this.messageRepo.findRecentByConversationId(conversation.id, 10);
       history = recentMessages.flatMap((message): AiChatMessage[] => {
-        if (message.status !== 'SUCCESS') {
-          return [];
-        }
 
         if (
           message.senderType !== 'system'
@@ -97,6 +96,14 @@ export class MessageService {
       conversationId: targetConversationId,
       content: payload.question,
       senderType: 'user',
+      status: 'SUCCESS',
+      modelName: payload.modelName,
+    });
+
+    const assistantMessage = await this.messageRepo.create({
+      conversationId: targetConversationId,
+      content: '',
+      senderType: 'assistant',
       status: 'PENDING',
       modelName: payload.modelName,
     });
@@ -105,6 +112,7 @@ export class MessageService {
       conversationId: targetConversationId,
       history,
       userMessage: MessageMapper.toMessageResponse(userMessage),
+      assistantMessage: MessageMapper.toMessageResponse(assistantMessage),
     };
   }
 
@@ -127,6 +135,20 @@ export class MessageService {
 
   async updateMessageStatus(messageId: string, status: MessageStatus): Promise<MessageResponseDto> {
     const message = await this.messageRepo.updateStatus(messageId, status);
+
+    return MessageMapper.toMessageResponse(message);
+  }
+
+  async updateAssistantMessage(
+    messageId: string,
+    content: string,
+    status: MessageStatus
+  ): Promise<MessageResponseDto> {
+    const message = await this.messageRepo.updateContentAndStatus(
+      messageId,
+      content,
+      status
+    );
 
     return MessageMapper.toMessageResponse(message);
   }

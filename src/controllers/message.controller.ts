@@ -48,7 +48,7 @@ export class MessageController {
     const abortController = new AbortController();
 
     const chunks: string[] = [];  // Lưu trữ các chunk tạm thời để có thể lưu vào DB sau khi stream kết thúc
-    let pendingUserMessageId: string | undefined;
+    let pendingAssistantMessageId: string | undefined;
 
     const handleClientClose = () => {
       abortController.abort();
@@ -64,7 +64,7 @@ export class MessageController {
         payload,
         conversationId
       );
-      pendingUserMessageId = prepared.userMessage.id;
+      pendingAssistantMessageId = prepared.assistantMessage.id;
 
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
@@ -78,7 +78,8 @@ export class MessageController {
           userMessage: {
             ...prepared.userMessage,
             fileUploads: incomingFiles
-          }
+          },
+          assistantMessage: prepared.assistantMessage
         })}\n\n`
       );
 
@@ -118,17 +119,11 @@ export class MessageController {
 
       // Nếu client đã hủy giữa chừng, vẫn lưu phần AI đã stream được để lịch sử không bị mất.
       if (abortController.signal.aborted) {
-        const partialContent = chunks.join('').trim();
-        if (partialContent) {
-          await this.messageService.saveAssistantMessage(
-            prepared.conversationId,
-            partialContent,
-            payload.modelName,
-            'FAILED'
-          );
-        }
-
-        await this.messageService.updateMessageStatus(prepared.userMessage.id, 'FAILED');
+        await this.messageService.updateAssistantMessage(
+          prepared.assistantMessage.id,
+          getFailedAssistantContent(chunks),
+          'FAILED'
+        );
 
         res.end();
         return;
@@ -136,12 +131,11 @@ export class MessageController {
 
       const finalContent = chunks.join('');
 
-      const assistantMessage = await this.messageService.saveAssistantMessage(
-        prepared.conversationId,
+      const assistantMessage = await this.messageService.updateAssistantMessage(
+        prepared.assistantMessage.id,
         finalContent,
-        payload.modelName
+        'SUCCESS'
       );
-      await this.messageService.updateMessageStatus(prepared.userMessage.id, 'SUCCESS');
 
       res.write(`event: done\n`);
       res.write(
@@ -160,12 +154,13 @@ export class MessageController {
         modelName: payload.modelName,
       });
 
-      if (pendingUserMessageId) {
-        await this.messageService.updateMessageStatus(
-          pendingUserMessageId,
+      if (pendingAssistantMessageId) {
+        await this.messageService.updateAssistantMessage(
+          pendingAssistantMessageId,
+          getFailedAssistantContent(chunks, error),
           'FAILED'
         ).catch((saveError) => {
-          logger.error('Failed to update user message status', {
+          logger.error('Failed to update assistant message status', {
             error: saveError,
             userId,
             conversationId,
@@ -233,5 +228,11 @@ function getStreamErrorMessage(error: unknown): string {
     return error.message;
   }
 
-  return 'Stream failed';
+  return 'Unable to generate a response from AI. Please try again.';
+}
+
+function getFailedAssistantContent(chunks: string[], error?: unknown): string {
+  const partialContent = chunks.join('').trim();
+
+  return partialContent || getStreamErrorMessage(error);
 }

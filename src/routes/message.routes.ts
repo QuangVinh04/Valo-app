@@ -29,6 +29,7 @@ router.post(
   validateRequest(sendMessageSchema),
   messageController.sendMessageStream
 );
+
 router.get(
   '/:messageId/export/docx',
   authenticate,

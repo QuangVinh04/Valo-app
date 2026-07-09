@@ -17,7 +17,6 @@ export const sendMessageSchema = z.object({
   })).max(5).optional(),
 });
 
-
 export type SendMessageRequestDto = z.infer<typeof sendMessageSchema>;
 
 
