@@ -28,7 +28,8 @@ export class MessageRepository {
           content: input.content,
           senderType: input.senderType,
           status: input.status ?? (input.senderType === 'user' ? 'PENDING' : 'SUCCESS'),
-          modelName: input.modelName ?? null
+          modelName: input.modelName ?? null,
+          isUserStopped: false
         }
       });
 
@@ -82,14 +83,15 @@ export class MessageRepository {
   async updateContentAndStatus(
     messageId: string,
     content: string,
-    status: MessageStatus
+    status: MessageStatus,
+    isUserStopped = false
   ) {
     const client = this.prisma as PrismaClient;
 
     return client.$transaction(async (tx) => {
       const message = await tx.message.update({
         where: { id: messageId },
-        data: { content, status },
+        data: { content, status, isUserStopped },
       });
 
       await tx.conversation.update({

@@ -10,9 +10,10 @@ export class MessageMapper {
       id: string;
       content: string;
       senderType: string;
-      status?: 'PENDING' | 'SUCCESS' | 'FAILED';
+      status: 'PENDING' | 'SUCCESS' | 'FAILED';
       modelName: string | null;
       createdAt: Date;
+      isUserStopped: boolean;
       attachments?: Array<{
         fileName: string;
         mimeType: string;
@@ -37,6 +38,7 @@ export class MessageMapper {
         ...(message.status ? { status: message.status } : {}),
         modelName: message.modelName,
         createdAt: message.createdAt,
+        isUserStopped: Boolean(message.isUserStopped),
         ...(fileUploads?.length ? { fileUploads } : {}),
       };
     }

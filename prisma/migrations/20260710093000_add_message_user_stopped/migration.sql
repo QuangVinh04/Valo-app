@@ -1,0 +1,2 @@
+ALTER TABLE "messages"
+ADD COLUMN "isUserStopped" BOOLEAN NOT NULL DEFAULT false;

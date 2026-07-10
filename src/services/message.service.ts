@@ -116,23 +116,6 @@ export class MessageService {
     };
   }
 
-  async saveAssistantMessage(
-    conversationId: string,
-    content: string,
-    modelName: string,
-    status: MessageStatus = 'SUCCESS'
-  ): Promise<MessageResponseDto> {
-    const assistantMessage = await this.messageRepo.create({
-      conversationId,
-      content,
-      senderType: 'assistant',
-      status,
-      modelName,
-    });
-
-    return MessageMapper.toMessageResponse(assistantMessage);
-  }
-
   async updateMessageStatus(messageId: string, status: MessageStatus): Promise<MessageResponseDto> {
     const message = await this.messageRepo.updateStatus(messageId, status);
 
@@ -142,12 +125,14 @@ export class MessageService {
   async updateAssistantMessage(
     messageId: string,
     content: string,
-    status: MessageStatus
+    status: MessageStatus,
+    isUserStopped = false
   ): Promise<MessageResponseDto> {
     const message = await this.messageRepo.updateContentAndStatus(
       messageId,
       content,
-      status
+      status,
+      isUserStopped
     );
 
     return MessageMapper.toMessageResponse(message);

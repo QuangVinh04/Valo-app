@@ -238,6 +238,7 @@ export const swaggerDocument = {
           status: { type: 'string', enum: ['PENDING', 'SUCCESS', 'FAILED'] },
           modelName: { type: 'string', nullable: true, example: 'flowise-agent' },
           createdAt: { type: 'string', format: 'date-time' },
+          isUserStopped: { type: 'boolean', example: false },
         },
       },
       CreateConversationRequest: {

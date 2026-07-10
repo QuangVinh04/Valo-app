@@ -122,7 +122,8 @@ export class MessageController {
         await this.messageService.updateAssistantMessage(
           prepared.assistantMessage.id,
           getFailedAssistantContent(chunks),
-          'FAILED'
+          'SUCCESS',
+          true
         );
 
         res.end();

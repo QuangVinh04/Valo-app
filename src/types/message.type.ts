@@ -28,6 +28,7 @@ export interface MessageResponseDto {
   modelName: string | null;
   createdAt: Date;
   fileUploads?: FileUploadDto[];
+  isUserStopped: boolean;
 }
 
 export interface SendMessageResponseDto {

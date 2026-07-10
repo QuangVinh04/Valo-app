@@ -51,6 +51,7 @@ model Message {
   status         MessageStatus @default(PENDING)
   modelName      String?
   content        String        @db.Text
+  isUserStopped  Boolean       @default(false)
   attachments    Attachment[]
   createdAt      DateTime      @default(now())
 
