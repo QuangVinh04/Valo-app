@@ -122,7 +122,7 @@ export const ErrorCode = {
   },
 
   FILE_TOO_LARGE: {
-    message: 'File exceeds 10MB',
+    message: 'File exceeds 20MB',
     statusCode: StatusCodes.BAD_REQUEST
   }
 } as const;

@@ -4,32 +4,38 @@ import path from 'path';
 import type { Request } from 'express';
 import env from '../config/env.js';
 import { ErrorCode } from '../constants/error-code.js';
-import type { FileUploadDto, LocalFileUploadRequestDto } from '../types/upload.type.js';
+import { UPLOAD_CONFIG } from '../constants/upload.constant.js';
+import type { FileUploadDto } from '../types/upload.type.js';
 import AppError from '../utils/app-error.js';
 
-const maxFileBytes = 10 * 1024 * 1024;
+const maxFileBytes = UPLOAD_CONFIG.MAX_FILE_SIZE;
 const localFileRoutePrefix = '/api/v1/attachments/files/';
 
-type LocalFileUploadInput = {
-  name: string;
+type LocalFilePathUploadInput = {
+  sourcePath: string;
+  originalName: string;
   mime?: string;
-  dataBase64: string;
+  size: number;
 };
 
 export class LocalStorageService {
-  async uploadFile(req: Request, payload: LocalFileUploadRequestDto): Promise<FileUploadDto> {
-    const savedFile = await this.saveFile({
-      name: payload.name,
-      mime: payload.mime,
-      dataBase64: payload.dataBase64,
-    });
+  async uploadFileFromPath(req: Request, input: LocalFilePathUploadInput): Promise<FileUploadDto> {
+    if (input.size > maxFileBytes) {
+      throw new AppError(ErrorCode.FILE_TOO_LARGE);
+    }
+
+    const fileName = `${randomUUID()}${this.getSafeExtension(input.originalName)}`;
+    const destination = this.getFilePath(fileName);
+
+    await fs.mkdir(this.getStorageDir(), { recursive: true });
+    await fs.rename(input.sourcePath, destination);
 
     return {
-      data: this.buildFileUrl(req, savedFile.fileName),
-      name: payload.name,
+      data: this.buildFileUrl(req, fileName),
+      name: input.originalName,
       type: 'url',
-      mime: payload.mime,
-      size: payload.size ?? savedFile.size,
+      mime: input.mime,
+      size: input.size,
     };
   }
 
@@ -57,29 +63,7 @@ export class LocalStorageService {
     });
   }
 
-  private async saveFile(input: LocalFileUploadInput): Promise<{
-    fileName: string;
-    size: number;
-  }> {
-    const buffer = Buffer.from(input.dataBase64, 'base64');
-
-    if (buffer.length > maxFileBytes) {
-      throw new AppError(ErrorCode.FILE_TOO_LARGE);
-    }
-
-    const fileName = `${randomUUID()}${this.getSafeExtension(input.name)}`;
-    const filePath = this.getFilePath(fileName);
-
-    await fs.mkdir(this.getStorageDir(), { recursive: true });
-    await fs.writeFile(filePath, buffer, { flag: 'wx' });
-
-    return {
-      fileName,
-      size: buffer.length,
-    };
-  }
-
-  private buildFileUrl(req: Request, fileName: string): string {
+  buildFileUrl(req: Request, fileName: string): string {
     return `${req.protocol}://${req.get('host')}${localFileRoutePrefix}${encodeURIComponent(fileName)}`;
   }
 

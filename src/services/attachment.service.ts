@@ -5,8 +5,6 @@ import {
 import type {
   AttachmentResponseDto,
   BulkDeleteAttachmentsResponseDto,
-  FileUploadDto,
-  LocalFileUploadRequestDto,
   UploadedFileDeleteResponseDto,
 } from '../types/upload.type.js';
 import type { ProcessedDocument } from './file.service.js';
@@ -16,7 +14,6 @@ import {
   CursorPaginationOptions,
 } from '../utils/pagination.util.js';
 import logger from '../utils/logger.util.js';
-import type { Request } from 'express';
 import { cloudinaryService, CloudinaryService } from './cloudinary.service.js';
 import { localStorageService, LocalStorageService } from './local-storage.service.js';
 import { ErrorCode } from '../constants/error-code.js';
@@ -50,13 +47,6 @@ export class AttachmentService {
     messageId: string
   ): Promise<number> {
     return this.attachmentRepo.createMany(userId, documents, messageId);
-  }
-
-  async uploadLocalFile(
-    req: Request,
-    payload: LocalFileUploadRequestDto
-  ): Promise<FileUploadDto> {
-    return this.localStorage.uploadFile(req, payload);
   }
 
   async deleteTemporaryUpload(

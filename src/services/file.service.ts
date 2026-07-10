@@ -1,4 +1,5 @@
 import { ErrorCode } from '../constants/error-code.js';
+import { UPLOAD_CONFIG } from '../constants/upload.constant.js';
 import type { FileUploadDto } from '../types/upload.type.js';
 import AppError from '../utils/app-error.js';
 import { cloudinaryService, CloudinaryService } from './cloudinary.service.js';
@@ -28,7 +29,7 @@ export type BufferedUploadedFile = {
 
 const importModule = new Function('specifier', 'return import(specifier)') as DynamicImporter;
 const maxDocumentChars = 12000;
-const maxFileBytes = 10 * 1024 * 1024;
+const maxFileBytes = UPLOAD_CONFIG.MAX_FILE_SIZE;
 
 
 //TODO: Bkav HoanNTh: file.service.ts chỉ xử lý logic liên quan đến file, việc xử lý promt không phải ở đây

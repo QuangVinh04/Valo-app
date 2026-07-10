@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UPLOAD_CONFIG } from '../constants/upload.constant.js';
 
 export interface FileUploadDto {
   data: string;
@@ -22,11 +23,12 @@ export const bulkDeleteAttachmentsSchema = z.object({
   ids: z.array(z.string().uuid()).min(1).max(100),
 });
 
-export const localFileUploadSchema = z.object({
-  name: z.string().trim().min(1).max(255),
-  mime: z.string().trim().min(1).max(255).optional(),
-  size: z.number().int().positive().max(10 * 1024 * 1024, 'File exceeds 10MB').optional(),
-  dataBase64: z.string().min(1),
+export const initializeChunkUploadSchema = z.object({
+  fileName: z.string().trim().min(1).max(255),
+  mimeType: z.string().trim().min(1).max(255),
+  fileSize: z.number().int().positive().max(UPLOAD_CONFIG.MAX_FILE_SIZE),
+  chunkSize: z.number().int().positive().max(UPLOAD_CONFIG.MAX_CHUNK_SIZE),
+  totalChunks: z.number().int().positive().max(Math.ceil(UPLOAD_CONFIG.MAX_FILE_SIZE / 1)),
 });
 
 export const uploadedFileDeleteSchema = z.object({
@@ -34,8 +36,30 @@ export const uploadedFileDeleteSchema = z.object({
 });
 
 export type BulkDeleteAttachmentsRequestDto = z.infer<typeof bulkDeleteAttachmentsSchema>;
-export type LocalFileUploadRequestDto = z.infer<typeof localFileUploadSchema>;
+export type InitializeChunkUploadRequestDto = z.infer<typeof initializeChunkUploadSchema>;
 export type UploadedFileDeleteRequestDto = z.infer<typeof uploadedFileDeleteSchema>;
+
+export interface ChunkUploadSessionDto {
+  uploadId: string;
+  chunkSize: number;
+  uploadedChunks: number[];
+  expiresAt: string;
+}
+
+export interface ChunkUploadStatusDto {
+  uploadId: string;
+  status:
+    | 'INITIALIZED'
+    | 'UPLOADING'
+    | 'ASSEMBLING'
+    | 'STORING'
+    | 'COMPLETED'
+    | 'FAILED'
+    | 'CANCELLED';
+  totalChunks: number;
+  uploadedChunks: number[];
+  missingChunks: number[];
+}
 
 export interface BulkDeleteAttachmentsResponseDto {
   deletedCount: number;

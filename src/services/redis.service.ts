@@ -40,6 +40,13 @@ export class RedisService {
     await redis.expire(key, ttlSeconds);
   }
 
+  async acquireLock(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+    const redis = getRedisClient();
+    const result = await redis.set(key, value, 'EX', ttlSeconds, 'NX');
+
+    return result === 'OK';
+  }
+
 }
 
 export const redisService = new RedisService();

@@ -1,11 +1,13 @@
+import path from 'path';
 import { v2 as cloudinary } from 'cloudinary';
 import env from '../config/env.js';
+import { UPLOAD_CONFIG } from '../constants/upload.constant.js';
 import logger from '../utils/logger.util.js';
 
 type CloudinaryResourceType = 'image' | 'raw';
 
 const allowedCloudinaryResourceTypes = new Set(['image', 'raw']);
-const maxFileBytes = 10 * 1024 * 1024;
+const maxFileBytes = UPLOAD_CONFIG.MAX_FILE_SIZE;
 
 export class CloudinaryService {
   constructor() {
@@ -33,6 +35,33 @@ export class CloudinaryService {
         resourceType: asset.resourceType,
       });
     }
+  }
+
+  async uploadFile(input: {
+    filePath: string;
+    fileName: string;
+    userId: string;
+    uploadId: string;
+  }): Promise<{
+    fileUrl: string;
+    publicId: string;
+  }> {
+    if (!env.CLOUDINARY_CLOUD_NAME || !env.CLOUDINARY_API_KEY || !env.CLOUDINARY_API_SECRET) {
+      throw new Error('Cloudinary is not configured');
+    }
+
+    const extension = path.extname(input.fileName);
+    const publicId = `valo/attachments/${input.userId}/${input.uploadId}${extension}`;
+    const result = await cloudinary.uploader.upload(input.filePath, {
+      public_id: publicId,
+      resource_type: 'auto',
+      overwrite: false,
+    });
+
+    return {
+      fileUrl: result.secure_url,
+      publicId: result.public_id,
+    };
   }
 
   async fetchFileBuffer(url: string): Promise<Buffer> {
