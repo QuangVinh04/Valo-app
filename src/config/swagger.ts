@@ -513,8 +513,9 @@ export const swaggerDocument = {
         summary: 'List groups',
         security: [{ bearerAuth: [] }],
         parameters: [
-          { name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
           { name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 } },
+          { name: 'cursor', in: 'query', schema: { type: 'string' }, description: 'Cursor returned by the previous response' },
+          { name: 'search', in: 'query', schema: { type: 'string', maxLength: 200 }, description: 'Case-insensitive title search' },
         ],
         responses: {
           '200': {

@@ -95,7 +95,10 @@ export class ConversationController {
   ) => {
     const userId = req.user.userId;
     const pagination = getCursorPaginationOptions(req.query);
-    const result = await this.conversationService.getConversations(userId, pagination);
+    const search = typeof req.query.search === 'string' && req.query.search.trim()
+      ? req.query.search.trim().slice(0, 200)
+      : undefined;
+    const result = await this.conversationService.getConversations(userId, pagination, search);
     return sendSuccess(
         res, 
         result.data, 

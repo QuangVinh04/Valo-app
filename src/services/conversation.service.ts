@@ -122,10 +122,15 @@ export class ConversationService {
     /**
      * Lấy danh sách cuộc hội thoại của người dùng theo cursor pagination.
      */
-    async getConversations(userId: string, pagination: CursorPaginationOptions): Promise<CursorPaginatedResult<ConversationSummaryResponseDto>> {
+    async getConversations(
+      userId: string,
+      pagination: CursorPaginationOptions,
+      search?: string
+    ): Promise<CursorPaginatedResult<ConversationSummaryResponseDto>> {
       const conversations = await this.conversationRepo.findManyCursor({
         userId,
         cursor: pagination.cursor,
+        search,
         take: pagination.limit + 1
       });
 

@@ -94,11 +94,18 @@ export class ConversationRepository {
   async findManyCursor(input: {
     userId: string;
     cursor?: string;
+    search?: string;
     take: number;
   }): Promise<ConversationSummary[]> {
     const cursor = input.cursor
       ? await this.prisma.conversation.findFirst({
-          where: { id: input.cursor, userId: input.userId },
+          where: {
+            id: input.cursor,
+            userId: input.userId,
+            ...(input.search
+              ? { title: { contains: input.search, mode: 'insensitive' as const } }
+              : {})
+          },
           select: {
             id: true,
             updatedAt: true
@@ -118,6 +125,9 @@ export class ConversationRepository {
       },
       where: {
         userId: input.userId,
+        ...(input.search
+          ? { title: { contains: input.search, mode: 'insensitive' as const } }
+          : {}),
         ...(cursor
           ? {
               OR: [
