@@ -35,6 +35,22 @@ export const otpSchema = z.object({
 
 export const resendOtpSchema = otpSchema.pick({ email: true });
 
+export const forgotPasswordSchema = z.object({
+  email: z.email('Invalid email').transform((value) => value.trim().toLowerCase()),
+});
+
+export const setPasswordSchema = z.object({
+  token: z.string().trim().min(20, 'token is invalid').max(512, 'token is invalid'),
+  newPassword: strongPasswordSchema,
+  confirmPassword: z.string().min(8, 'confirmPassword must be at least 8 characters'),
+}).refine(
+  (value) => value.newPassword === value.confirmPassword,
+  {
+    message: 'New password and confirm password do not match',
+    path: ['confirmPassword'],
+  }
+);
+
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(1, 'currentPassword is required'),
@@ -47,6 +63,8 @@ export type LoginRequestDto = z.infer<typeof loginSchema>;
 export type OtpRequestDto = z.infer<typeof otpSchema>;
 export type ResendOtpRequestDto = z.infer<typeof resendOtpSchema>;
 export type ChangePasswordRequestDto = z.infer<typeof changePasswordSchema>;
+export type ForgotPasswordRequestDto = z.infer<typeof forgotPasswordSchema>;
+export type SetPasswordRequestDto = z.infer<typeof setPasswordSchema>;
 
 
 

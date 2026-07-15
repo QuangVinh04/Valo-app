@@ -68,6 +68,13 @@ export class UserController {
     }
   );
 
+  resendInvitation = catchAsync(
+    async (req: Request, res: Response<ApiResponse<boolean>>, _next: NextFunction) => {
+      const result = await this.userService.resendInvitation(req.params.id.toString());
+      return sendSuccess(res, result, 'Invitation queued', StatusCodes.OK);
+    }
+  );
+
   updateUser = catchAsync(
     async (
       req: Request,

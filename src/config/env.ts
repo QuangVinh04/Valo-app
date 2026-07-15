@@ -8,6 +8,10 @@ const env = {
   DATABASE_URL: process.env.DATABASE_URL,
   REDIS_URL: process.env.REDIS_URL,
   CLIENT_URL: process.env.CLIENT_URL || '*',
+  APP_URL: process.env.APP_URL
+    || (process.env.CLIENT_URL && process.env.CLIENT_URL !== '*'
+      ? process.env.CLIENT_URL
+      : 'http://localhost:5173'),
   LOG_LEVEL: process.env.LOG_LEVEL,
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_VALID_DURATION: process.env.JWT_VALID_DURATION as SignOptions['expiresIn'],

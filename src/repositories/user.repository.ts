@@ -1,8 +1,5 @@
-import type { Prisma, PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient, User } from '@prisma/client';
 import { PrismaService } from '../config/prisma.js';
-import type { User } from '@prisma/client';
-
-
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -13,11 +10,11 @@ const userGroupsSelect = {
         select: {
           id: true,
           name: true,
-          description: true,
-        },
-      },
-    },
-  },
+          description: true
+        }
+      }
+    }
+  }
 } satisfies Prisma.UserSelect;
 
 const userDetailSelect = {
@@ -27,9 +24,10 @@ const userDetailSelect = {
   phoneNumber: true,
   address: true,
   active: true,
+  invitationEmailFailed: true,
   createdAt: true,
   updatedAt: true,
-  ...userGroupsSelect,
+  ...userGroupsSelect
 } satisfies Prisma.UserSelect;
 
 const userListSelect = {
@@ -37,7 +35,8 @@ const userListSelect = {
   fullName: true,
   email: true,
   active: true,
-  ...userGroupsSelect,
+  invitationEmailFailed: true,
+  ...userGroupsSelect
 } satisfies Prisma.UserSelect;
 
 export type UserDetail = Prisma.UserGetPayload<{
@@ -53,8 +52,9 @@ export interface CreateUserInput {
   email: string;
   phoneNumber?: string | null;
   address?: string | null;
-  password: string;
+  password: string | null;
   active?: boolean;
+  invitationEmailFailed?: boolean;
 }
 
 export interface UpdateUserInput {
@@ -228,7 +228,8 @@ export class UserRepository {
         phoneNumber: input.phoneNumber,
         address: input.address,
         password: input.password,
-        active: input.active ?? false
+        active: input.active ?? false,
+        invitationEmailFailed: input.invitationEmailFailed ?? false
       }
     });
   }
@@ -286,6 +287,29 @@ export class UserRepository {
     });
   }
 
+  async updateInvitationEmailFailed(userId: string, failed: boolean): Promise<void> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        invitationEmailFailed: failed
+      }
+    });
+  }
+
+  async updatePasswordAndSession(input: { userId: string; password: string }): Promise<void> {
+    await this.prisma.user.update({
+      where: {
+        id: input.userId
+      },
+      data: {
+        password: input.password,
+        active: true,
+        invitationEmailFailed: false,
+        refreshToken: null
+      }
+    });
+  }
+
   async activateUser(userId: string): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
@@ -293,6 +317,5 @@ export class UserRepository {
     });
   }
 }
-
 const prismaService = PrismaService.getInstance();
 export const userRepository = new UserRepository(prismaService.client);

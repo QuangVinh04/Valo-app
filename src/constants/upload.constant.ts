@@ -10,11 +10,12 @@ export const UPLOAD_CONFIG = {
   COMPLETE_LOCK_TTL_SECONDS: 60,
 } as const;
 
-export const SUPPORTED_UPLOAD_EXTENSIONS = new Set(['.pdf', '.txt', '.xls', '.xlsx']);
+export const SUPPORTED_UPLOAD_EXTENSIONS = new Set(['.pdf', '.txt', '.docx', '.xls', '.xlsx']);
 
 export const SUPPORTED_UPLOAD_MIME_TYPES = new Set([
   'application/pdf',
   'text/plain',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]);

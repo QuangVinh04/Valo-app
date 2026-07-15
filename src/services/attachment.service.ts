@@ -5,9 +5,9 @@ import {
 import type {
   AttachmentResponseDto,
   BulkDeleteAttachmentsResponseDto,
+  FileUploadDto,
   UploadedFileDeleteResponseDto,
 } from '../types/upload.type.js';
-import type { ProcessedDocument } from './file.service.js';
 import {
   buildCursorPaginatedResult,
   CursorPaginatedResult,
@@ -43,10 +43,10 @@ export class AttachmentService {
 
   async saveMessageAttachments(
     userId: string,
-    documents: ProcessedDocument[],
+    fileUploads: FileUploadDto[],
     messageId: string
   ): Promise<number> {
-    return this.attachmentRepo.createMany(userId, documents, messageId);
+    return this.attachmentRepo.createMany(userId, fileUploads, messageId);
   }
 
   async deleteTemporaryUpload(

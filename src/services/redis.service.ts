@@ -47,6 +47,19 @@ export class RedisService {
     return result === 'OK';
   }
 
+  async releaseLock(key: string, value: string): Promise<void> {
+    const redis = getRedisClient();
+    await redis.eval(
+      `if redis.call('get', KEYS[1]) == ARGV[1] then
+        return redis.call('del', KEYS[1])
+      end
+      return 0`,
+      1,
+      key,
+      value
+    );
+  }
+
 }
 
 export const redisService = new RedisService();

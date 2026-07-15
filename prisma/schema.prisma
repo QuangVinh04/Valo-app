@@ -15,7 +15,7 @@ model User {
   email              String         @unique
   phoneNumber        String?
   address            String?
-  password           String
+  password           String?
   conversations      Conversation[]
   attachments        Attachment[]
   userGroups         UserGroup[]
@@ -23,6 +23,7 @@ model User {
   updatedAt          DateTime       @updatedAt
   refreshToken       String?
   active             Boolean        @default(false)
+  invitationEmailFailed Boolean        @default(false)
   //TODO: Bkav HoanNTH: không nên để setting default, nên để mặc định null sau đó trả mặc định trong code tránh TH sau thay đổi default phải migration
   //FIXME: Bkav VinhTQ: Done
   settings           Json?

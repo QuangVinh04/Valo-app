@@ -10,6 +10,7 @@ import { runDatabaseSeeders } from './database/seeder/index.js';
 import { connectRedis, getRedisClient } from './config/redis.js';
 import { PrismaService } from './config/prisma.js';
 import logger from './utils/logger.util.js';
+import { initializeEmailQueue } from './queues/email.queue.js';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -33,11 +34,8 @@ class Server {
 
     await connectDB();
     await connectRedis(env.REDIS_URL);
-    const [{ emailQueue }, { emailWorker }] = await Promise.all([
-      import('./queues/email.queue.js'),
-      import('./queues/email.worker.js'),
-    ]);
-    this.emailQueue = emailQueue;
+    this.emailQueue = initializeEmailQueue();
+    const { emailWorker } = await import('./queues/email.worker.js');
     this.emailWorker = emailWorker;
     void this.emailWorker.waitUntilReady();
     await runDatabaseSeeders(this.prismaService.client);

@@ -51,6 +51,13 @@ router.post(
   userController.createUser
 );
 
+router.post(
+  '/:id/resend-invitation',
+  authenticate,
+  authorize(PermissionConstant.USER_CREATE.key),
+  userController.resendInvitation
+);
+
 
 router.put(
   '/:id',

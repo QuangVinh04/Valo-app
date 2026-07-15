@@ -16,6 +16,7 @@ export class UserMapper {
         description: group.description
       })),
       active: user.active,
+      invitationEmailFailed: user.invitationEmailFailed,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -42,6 +43,7 @@ export class UserMapper {
         description: group.description
       })),
       active: user.active,
+      invitationEmailFailed: user.invitationEmailFailed,
     };
   }
 }

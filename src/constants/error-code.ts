@@ -72,6 +72,14 @@ export const ErrorCode = {
     message: 'Invalid token',
     statusCode: StatusCodes.UNAUTHORIZED
   },
+  INVALID_EXPIRED_ACCOUNT_LINK: {
+    message: 'Invalid or expired account link',
+    statusCode: StatusCodes.UNAUTHORIZED
+  },
+  ACCOUNT_NOT_ACTIVE: {
+    message: 'Account not active',
+    statusCode: StatusCodes.BAD_REQUEST
+  },
 
   EMAIL_SEND_FAILED: {
     message: 'Email send failed',
@@ -87,7 +95,7 @@ export const ErrorCode = {
     message: 'Cannot delete the last admin user',
     statusCode: StatusCodes.BAD_REQUEST
   },
-  
+
   AI_TIMEOUT: {
     message: 'AI response timeout',
     statusCode: StatusCodes.GATEWAY_TIMEOUT

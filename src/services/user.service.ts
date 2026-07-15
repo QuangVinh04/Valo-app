@@ -4,12 +4,12 @@ import { GroupRepository, groupRepository } from '../repositories/group.reposito
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
 import type { AssignUserGroupsRequestDto, BulkDeleteUsersResponseDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserResponseDto, UserSettingsDto, UserUpdateResponseDto } from '../types/user.type.js';
 import AppError from '../utils/app-error.js';
-import { hashString } from '../utils/auth.util.js';
 import {
   buildPaginatedResult,
   type PaginatedResult,
   type PaginationOptions
 } from '../utils/pagination.util.js';
+import { accountLinkService, AccountLinkService } from './account-link.service.js';
 
 
 export interface UserListFilters {
@@ -21,10 +21,16 @@ export interface UserListFilters {
 export class UserService {
   private readonly userRepo: UserRepository;
   private readonly groupRepo: GroupRepository;
+  private readonly accountLinkService: AccountLinkService;
 
-  constructor(userRepository: UserRepository, groupRepository: GroupRepository) {
+  constructor(
+    userRepository: UserRepository,
+    groupRepository: GroupRepository,
+    accountLinkService: AccountLinkService
+  ) {
     this.userRepo = userRepository;
     this.groupRepo = groupRepository;
+    this.accountLinkService = accountLinkService;
   }
 
   /**
@@ -66,7 +72,7 @@ export class UserService {
   }
 
   /**
-   * Tạo tài khoản mới với mật khẩu admin nhập. Tài khoản vẫn inactive đến khi người dùng đăng nhập và xác minh OTP.
+   * Tạo tài khoản inactive và gửi liên kết để người dùng tự đặt mật khẩu, kích hoạt tài khoản.
    */
   async createUser(payload: CreateUserRequestDto): Promise<CreatedUserDto> {
     const email = payload.email.trim().toLowerCase();
@@ -81,11 +87,41 @@ export class UserService {
       email,
       phoneNumber: payload.phoneNumber?.trim() || null,
       address: payload.address?.trim() || null,
-      password: await hashString(payload.password),
-      active: false
+      password: null,
+      active: false,
+      invitationEmailFailed: false
     });
 
+    await this.accountLinkService.sendInvitation(
+      {
+        email: user.email,
+        fullName: user.fullName,
+        userId: user.id
+      }
+    )
+
     return { id: user.id };
+  }
+
+  async resendInvitation(userId: string): Promise<boolean> {
+    const user = await this.userRepo.findById(userId);
+
+    if (!user) {
+      throw new AppError(ErrorCode.USER_NOT_FOUND);
+    }
+
+    if (user.active || user.password !== null) {
+      throw new AppError(
+        ErrorCode.BAD_REQUEST,
+        'Only pending invited users can receive another invitation'
+      );
+    }
+
+    return this.accountLinkService.sendInvitation({
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName
+    });
   }
 
   //TODO: Bkav HoanNTh: tách biệt riêng update user và add user vào group
@@ -212,4 +248,4 @@ export class UserService {
 }
 
 
-export const userService = new UserService(userRepository, groupRepository);
+export const userService = new UserService(userRepository, groupRepository, accountLinkService);

@@ -66,6 +66,14 @@ export class MessageController {
       );
       pendingAssistantMessageId = prepared.assistantMessage.id;
 
+      // File đã gửi thuộc về user message ngay khi request được chấp nhận.
+      // Việc trích xuất nội dung phía sau có thể thất bại nhưng không được làm mất attachment.
+      await this.attachmentService.saveMessageAttachments(
+        userId,
+        incomingFiles,
+        prepared.userMessage.id
+      );
+
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
@@ -84,13 +92,6 @@ export class MessageController {
       );
 
       const processedFiles = await this.fileService.processFilesFromUrls(incomingFiles);
-      //TODO: Bkav HoanNTh: controller gọi thẳng repo, sai kiến trúc Controller → Service → Repository
-      //FIXME: Bkav VinhTQ: Done
-      await this.attachmentService.saveMessageAttachments(
-        userId,
-        processedFiles.documents,
-        prepared.userMessage.id
-      );
 
       const aiQuestion = this.messageService.buildAiQuestion(
         prepared.userMessage.content,
@@ -121,7 +122,7 @@ export class MessageController {
       if (abortController.signal.aborted) {
         await this.messageService.updateAssistantMessage(
           prepared.assistantMessage.id,
-          getFailedAssistantContent(chunks),
+          chunks.join(''),
           'SUCCESS',
           true
         );
@@ -148,6 +149,30 @@ export class MessageController {
 
       res.end();
     } catch (error) {
+      res.off('close', handleClientClose);
+
+      // Client có thể dừng stream trong lúc backend vẫn đang tải hoặc trích xuất file.
+      // Khi đó lỗi phát sinh sau tín hiệu abort không được ghi đè trạng thái chủ động dừng.
+      if (abortController.signal.aborted) {
+        if (pendingAssistantMessageId) {
+          await this.messageService.updateAssistantMessage(
+            pendingAssistantMessageId,
+            chunks.join(''),
+            'SUCCESS',
+            true
+          ).catch((saveError) => {
+            logger.error('Failed to persist stopped assistant message', {
+              error: saveError,
+              userId,
+              conversationId,
+              modelName: payload.modelName,
+            });
+          });
+        }
+
+        return;
+      }
+
       logger.error('Message stream failed', {
         error,
         userId,

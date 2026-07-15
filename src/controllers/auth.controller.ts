@@ -2,14 +2,16 @@ import type { NextFunction, Request, Response } from 'express';
 import type {
   AuthResponseDto,
   ChangePasswordRequestDto,
+  ForgotPasswordRequestDto,
   LoginRequestDto,
   OtpRequestDto,
   RefreshTokenResponseDto,
-  ResendOtpRequestDto,
   RegisterRequestDto,
+  ResendOtpRequestDto,
+  SetPasswordRequestDto
 } from '../types/auth.type.js';
 import { authService, AuthService } from '../services/auth.service.js';
-import { sendSuccess, type ApiResponse } from '../utils/api-response.js';
+import { type ApiResponse, sendSuccess } from '../utils/api-response.js';
 import { StatusCodes } from 'http-status-codes';
 import catchAsync from '../utils/catch-async.js';
 import type { AuthenticatedRequest } from '../middlewares/auth.middleware.js';
@@ -21,153 +23,139 @@ export class AuthController {
     this.authService = service;
   }
 
-  registerUser = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<boolean>>,
-    _next: NextFunction
-  ) => {
-    const payload = req.body as RegisterRequestDto;
-    const result = await this.authService.registerUser(payload);
-    return sendSuccess(
-      res,
-      result,
-      'Register successful',
-      StatusCodes.CREATED
-    );
-  });
+  registerUser = catchAsync(
+    async (req: Request, res: Response<ApiResponse<boolean>>, _next: NextFunction) => {
+      const payload = req.body as RegisterRequestDto;
+      const result = await this.authService.registerUser(payload);
+      return sendSuccess(res, result, 'Register successful', StatusCodes.CREATED);
+    }
+  );
 
-  loginUser = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<AuthResponseDto>>,
-    _next: NextFunction
-  ) => {
-    const payload = req.body as LoginRequestDto;
-    const { authResponse, refreshToken } = await this.authService.loginUser(payload);
+  loginUser = catchAsync(
+    async (req: Request, res: Response<ApiResponse<AuthResponseDto>>, _next: NextFunction) => {
+      const payload = req.body as LoginRequestDto;
+      const { authResponse, refreshToken } = await this.authService.loginUser(payload);
 
-    if (!refreshToken) {
+      if (!refreshToken) {
+        return sendSuccess(res, authResponse, 'Account verification required', StatusCodes.OK);
+      }
+
+      res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      return sendSuccess(res, authResponse, 'Login successful', StatusCodes.OK);
+    }
+  );
+
+  verifyOtp = catchAsync(
+    async (req: Request, res: Response<ApiResponse<boolean>>, _next: NextFunction) => {
+      const payload = req.body as OtpRequestDto;
+      const result = await this.authService.verifyOtp(payload);
+
+      return sendSuccess(res, result, 'Account verified successfully', StatusCodes.OK);
+    }
+  );
+
+  resendOtp = catchAsync(
+    async (req: Request, res: Response<ApiResponse<boolean>>, _next: NextFunction) => {
+      const payload = req.body as ResendOtpRequestDto;
+      const result = await this.authService.resendOtp(payload);
+
+      return sendSuccess(res, result, 'OTP sent successfully', StatusCodes.OK);
+    }
+  );
+
+  logoutUser = catchAsync(
+    async (req: AuthenticatedRequest, res: Response<ApiResponse<void>>, _next: NextFunction) => {
+      const refreshToken = req.cookies.refreshToken;
+      const accessToken = req.user.accessToken;
+
+      await this.authService.logout(refreshToken, accessToken);
+
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      });
+
+      return sendSuccess(res, null, 'Logout successful', StatusCodes.OK);
+    }
+  );
+
+  refreshAccessToken = catchAsync(
+    async (
+      req: Request,
+      res: Response<ApiResponse<RefreshTokenResponseDto>>,
+      _next: NextFunction
+    ) => {
+      const refreshToken = req.cookies.refreshToken;
+
+      const result = await this.authService.refreshToken({ refreshToken });
+
+      return sendSuccess(res, result, 'Token refreshed successfully', StatusCodes.OK);
+    }
+  );
+
+  changePassword = catchAsync(
+    async (req: AuthenticatedRequest, res: Response<ApiResponse<null>>, _next: NextFunction) => {
+      const payload = req.body as ChangePasswordRequestDto;
+      const userId = req.user?.userId;
+
+      await this.authService.changePassword(userId, payload);
+
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      });
+
+      return sendSuccess(res, null, 'Password changed successfully', StatusCodes.OK);
+    }
+  );
+
+  forgotPassword = catchAsync(
+    async (req: Request, res: Response<ApiResponse<boolean>>, _next: NextFunction) => {
+      const result = await this.authService.forgotPassword(req.body as ForgotPasswordRequestDto);
+
       return sendSuccess(
         res,
-        authResponse,
-        'Account verification required',
+        result,
+        'If the account exists, a password reset link has been sent',
         StatusCodes.OK
       );
     }
+  );
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+  setPassword = catchAsync(
+    async (req: Request, res: Response<ApiResponse<boolean>>, _next: NextFunction) => {
+      const payload = req.body as SetPasswordRequestDto;
+      const result = await this.authService.setPasswordByToken(payload);
 
-    return sendSuccess(
-      res,
-      authResponse,
-      'Login successful',
-      StatusCodes.OK);
-  });
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict'
+      });
 
-  verifyOtp = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<boolean>>,
-    _next: NextFunction
-  ) => {
-    const payload = req.body as OtpRequestDto;
-    const result = await this.authService.verifyOtp(payload);
+      return sendSuccess(res, result, 'Password set successfully', StatusCodes.OK);
+    }
+  );
 
-    return sendSuccess(
-      res,
-      result,
-      'Account verified successfully',
-      StatusCodes.OK
-    );
-  });
+  getCurrentUserPermissions = catchAsync(
+    async (
+      req: AuthenticatedRequest,
+      res: Response<ApiResponse<string[]>>,
+      _next: NextFunction
+    ) => {
+      const result = await this.authService.getUserPermissions(req.user.userId);
 
-  resendOtp = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<boolean>>,
-    _next: NextFunction
-  ) => {
-    const payload = req.body as ResendOtpRequestDto;
-    const result = await this.authService.resendOtp(payload);
-
-    return sendSuccess(
-      res,
-      result,
-      'OTP sent successfully',
-      StatusCodes.OK
-    );
-  });
-
-  logoutUser = catchAsync(async (
-    req: AuthenticatedRequest,
-    res: Response<ApiResponse<void>>,
-    _next: NextFunction
-  ) => {
-    const refreshToken = req.cookies.refreshToken;
-    const accessToken = req.user.accessToken;
-
-    await this.authService.logout(refreshToken, accessToken);
-
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-    });
-
-    return sendSuccess(
-      res,
-      null,
-      'Logout successful',
-      StatusCodes.OK
-    );
-  });
-
-  refreshAccessToken = catchAsync(async (
-    req: Request,
-    res: Response<ApiResponse<RefreshTokenResponseDto>>,
-    _next: NextFunction
-  ) => {
-    const refreshToken = req.cookies.refreshToken;
-
-    const result = await this.authService.refreshToken({ refreshToken });
-
-    return sendSuccess(
-      res,
-      result,
-      'Token refreshed successfully',
-      StatusCodes.OK
-    );
-  });
-
-  changePassword = catchAsync(async (
-    req: AuthenticatedRequest,
-    res: Response<ApiResponse<null>>,
-    _next: NextFunction
-  ) => {
-    const payload = req.body as ChangePasswordRequestDto;
-    const userId = req.user?.userId;
-
-    await this.authService.changePassword(userId, payload);
-
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-    });
-
-    return sendSuccess(res, null, 'Password changed successfully', StatusCodes.OK);
-  });
-
-  getCurrentUserPermissions = catchAsync(async (
-    req: AuthenticatedRequest,
-    res: Response<ApiResponse<string[]>>,
-    _next: NextFunction
-  ) => {
-    const result = await this.authService.getUserPermissions(req.user.userId);
-
-    return sendSuccess(res, result, 'Permissions found', StatusCodes.OK);
-  });
+      return sendSuccess(res, result, 'Permissions found', StatusCodes.OK);
+    }
+  );
 }
 
 export const authController = new AuthController(authService);

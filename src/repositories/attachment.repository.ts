@@ -1,7 +1,6 @@
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../config/prisma.js';
-import type { ProcessedDocument } from '../services/file.service.js';
-import type { AttachmentResponseDto } from '../types/upload.type.js';
+import type { AttachmentResponseDto, FileUploadDto } from '../types/upload.type.js';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
@@ -14,20 +13,19 @@ export class AttachmentRepository {
 
   async createMany(
     userId: string,
-    documents: ProcessedDocument[],
+    fileUploads: FileUploadDto[],
     messageId?: string
   ): Promise<number> {
-    if (!documents.length) return 0;
+    if (!fileUploads.length) return 0;
 
     const result = await this.prisma.attachment.createMany({
-      data: documents.map((document) => ({
+      data: fileUploads.map((file) => ({
         userId,
         messageId,
-        fileName: document.name,
-        mimeType: document.mime,
-        fileUrl: document.url,
-        fileSize: document.size,
-        extractedText: document.text,
+        fileName: file.name,
+        mimeType: file.mime ?? 'application/octet-stream',
+        fileUrl: file.data,
+        fileSize: file.size,
       })),
     });
 

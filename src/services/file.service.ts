@@ -121,6 +121,10 @@ export class FileService {
       return this.extractPdfText(file);
     }
 
+    if (this.isDocx(file)) {
+      return this.extractDocxText(file);
+    }
+
     if (this.isSpreadsheet(file)) {
       return this.extractSpreadsheetText(file);
     }
@@ -147,6 +151,32 @@ export class FileService {
       || file.mimetype === 'application/vnd.ms-excel'
       || file.originalname.toLowerCase().endsWith('.xlsx')
       || file.originalname.toLowerCase().endsWith('.xls');
+  }
+
+  /**
+   * Kiểm tra file có phải tài liệu Word Open XML hay không.
+   */
+  private isDocx(file: BufferedUploadedFile): boolean {
+    return file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      || file.originalname.toLowerCase().endsWith('.docx');
+  }
+
+  /**
+   * Trích xuất văn bản thuần từ tài liệu DOCX bằng mammoth.
+   */
+  private async extractDocxText(file: BufferedUploadedFile): Promise<string> {
+    const mammoth = await this.loadOptionalPackage('mammoth');
+    const extractRawText = mammoth.extractRawText ?? mammoth.default?.extractRawText;
+
+    if (typeof extractRawText !== 'function') {
+      throw new AppError(
+        ErrorCode.INTERNAL_SERVER_ERROR,
+        'Unsupported mammoth package API'
+      );
+    }
+
+    const result = await extractRawText({ buffer: file.buffer });
+    return result.value ?? '';
   }
 
   /**

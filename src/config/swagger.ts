@@ -102,6 +102,22 @@ export const swaggerDocument = {
           confirmPassword: { type: 'string', example: 'NewPassword123!' },
         },
       },
+      ForgotPasswordRequest: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+          email: { type: 'string', format: 'email', example: 'user@example.com' },
+        },
+      },
+      SetPasswordRequest: {
+        type: 'object',
+        required: ['token', 'newPassword', 'confirmPassword'],
+        properties: {
+          token: { type: 'string', example: 'one-time-token-from-email' },
+          newPassword: { type: 'string', example: 'NewPassword123!' },
+          confirmPassword: { type: 'string', example: 'NewPassword123!' },
+        },
+      },
       AuthResponse: {
         type: 'object',
         properties: {
@@ -118,6 +134,7 @@ export const swaggerDocument = {
             example: ['CHAT', 'CONV_R'],
           },
           active: { type: 'boolean', example: true },
+          invitationEmailFailed: { type: 'boolean', example: false },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
           accessToken: { type: 'string', nullable: true },
@@ -186,12 +203,10 @@ export const swaggerDocument = {
       },
       UserRequest: {
         type: 'object',
-        required: ['fullName', 'email', 'password', 'confirmPassword'],
+        required: ['fullName', 'email'],
         properties: {
           fullName: { type: 'string', example: 'Nguyen Van B' },
           email: { type: 'string', format: 'email', example: 'b@example.com' },
-          password: { type: 'string', example: 'Password123!' },
-          confirmPassword: { type: 'string', example: 'Password123!' },
           phoneNumber: { type: 'string', nullable: true, example: '+84901234567' },
           address: { type: 'string', nullable: true, example: 'Ho Chi Minh City' },
           groupIds: {
@@ -507,6 +522,44 @@ export const swaggerDocument = {
         },
       },
     },
+    [`${BASE_AUTH_PATH}/forgot-password`]: {
+      post: {
+        tags: ['Auth'],
+        summary: 'Email a one-time password reset link',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ForgotPasswordRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Generic response whether or not the account exists' },
+          '400': { description: 'Validation failed' },
+          '429': { description: 'Too many requests' },
+        },
+      },
+    },
+    [`${BASE_AUTH_PATH}/set-password`]: {
+      post: {
+        tags: ['Auth'],
+        summary: 'Set password with an INVITE or RESET one-time token',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/SetPasswordRequest' },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Password set successfully' },
+          '400': { description: 'Validation failed' },
+          '401': { description: 'Invalid or expired link' },
+        },
+      },
+    },
     [BASE_GROUP_PATH]: {
       get: {
         tags: ['Groups'],
@@ -668,7 +721,7 @@ export const swaggerDocument = {
       },
       post: {
         tags: ['Users'],
-        summary: 'Create user',
+        summary: 'Create an inactive user and email an activation link',
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
@@ -676,7 +729,7 @@ export const swaggerDocument = {
         },
         responses: {
           '201': {
-            description: 'User created',
+            description: 'User created and invitation queued',
             content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiUserResponse' } } },
           },
           '400': { description: 'Validation failed' },
@@ -723,6 +776,21 @@ export const swaggerDocument = {
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         responses: {
           '200': { description: 'User deleted', content: { 'application/json': { schema: { $ref: '#/components/schemas/ApiNullResponse' } } } },
+          '401': { description: 'Unauthorized' },
+          '403': { description: 'Forbidden' },
+          '404': { description: 'User not found' },
+        },
+      },
+    },
+    [`${BASE_USER_PATH}/{id}/resend-invitation`]: {
+      post: {
+        tags: ['Users'],
+        summary: 'Queue another invitation email for a pending invited user',
+        security: [{ bearerAuth: [] }],
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+        responses: {
+          '200': { description: 'Invitation queued' },
+          '400': { description: 'User is not awaiting invitation acceptance' },
           '401': { description: 'Unauthorized' },
           '403': { description: 'Forbidden' },
           '404': { description: 'User not found' },

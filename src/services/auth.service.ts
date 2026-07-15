@@ -3,22 +3,28 @@ import env from '../config/env.js';
 import {
   AuthResponseDto,
   ChangePasswordRequestDto,
+  ForgotPasswordRequestDto,
   LoginRequestDto,
   OtpRequestDto,
   RefreshTokenRequestDto,
   RefreshTokenResponseDto,
-  ResendOtpRequestDto,
   RegisterRequestDto,
+  ResendOtpRequestDto,
+  SetPasswordRequestDto
 } from '../types/auth.type.js';
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
 import { GroupRepository } from '../repositories/group.repository.js';
 import AppError from '../utils/app-error.js';
-import { generateAccessToken, verifyRefreshToken, generateRefreshToken, verifyToken } from '../utils/jwt.util.js';
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken, verifyToken } from '../utils/jwt.util.js';
 import { AuthMapper } from '../mapper/auth.mapper.js';
 import { withTransaction } from '../database/transaction.js';
-import { hashString, compareString, generateOtp } from '../utils/auth.util.js';
+import { compareString, generateOtp, hashString } from '../utils/auth.util.js';
 import { RedisService } from './redis.service.js';
 import { durationToSeconds } from '../utils/time.util.js';
+import { accountLinkService, AccountLinkService } from './account-link.service.js';
+import { getEmailQueue, SEND_OTP_JOB } from '../queues/email.queue.js';
+import { PASSWORD_TOKEN_PURPOSE } from '../constants/password-token.constant.js';
+import { passwordSetupService, PasswordSetupService } from './password-setup.service.js';
 
 const getRefreshTokenKey = (userId: string) => {
   return `auth:refresh:${userId}`;
@@ -40,12 +46,19 @@ const REFRESH_TOKEN_TTL = durationToSeconds(env.JWT_REFRESH_DURATION as string);
 export class AuthService {
   private readonly userRepository: UserRepository;
   private readonly redisService: RedisService;
+  private readonly accountLinkService: AccountLinkService;
+  private readonly passwordSetupService: PasswordSetupService;
 
   constructor(
     userRepository: UserRepository,
-    redisService = new RedisService()) {
+    redisService = new RedisService(),
+    accountLinkService: AccountLinkService,
+    passwordSetupService: PasswordSetupService
+  ) {
     this.userRepository = userRepository;
     this.redisService = redisService;
+    this.accountLinkService = accountLinkService;
+    this.passwordSetupService = passwordSetupService;
   }
 
   private async sendVerificationOtp(
@@ -70,27 +83,20 @@ export class AuthService {
       `auth:otp:${email}`,
       {
         userId: user.id,
-        hash: await hashString(otp),
+        hash: await hashString(otp)
       },
       5 * 60
     );
 
-    await this.redisService.set(
-      cooldownKey,
-      true,
-      60
-    );
+    await this.redisService.set(cooldownKey, true, 60);
 
-    const { emailQueue, SEND_OTP_JOB } = await import('../queues/email.queue.js');
-
-    await emailQueue.add(SEND_OTP_JOB, {
+    await getEmailQueue().add(SEND_OTP_JOB, {
       userId: user.id,
       to: user.email,
       fullName: user.fullName,
-      otp,
+      otp
     });
   }
-
 
   /**
    * Đăng ký tài khoản mới với nhóm mặc định, mật khẩu người dùng nhập và OTP xác minh.
@@ -129,7 +135,6 @@ export class AuthService {
     await this.sendVerificationOtp(result);
 
     return true;
-
   }
 
   async verifyOtp(payload: OtpRequestDto): Promise<boolean> {
@@ -148,10 +153,8 @@ export class AuthService {
     await this.redisService.delete(`auth:otp:${payload.email}`);
     await this.redisService.delete(`auth:otp:cooldown:${payload.email}`);
 
-
     return true;
   }
-
 
   async resendOtp(payload: ResendOtpRequestDto): Promise<boolean> {
     const email = payload.email.trim().toLowerCase();
@@ -159,6 +162,10 @@ export class AuthService {
 
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
+    }
+
+    if (!user.password) {
+      throw new AppError(ErrorCode.BAD_REQUEST, 'Invited accounts must use the invitation link');
     }
 
     if (user.active) {
@@ -184,6 +191,10 @@ export class AuthService {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
 
+    if (!user.password) {
+      throw new AppError(ErrorCode.INVALID_CREDENTIALS);
+    }
+
     const isPasswordMatched = await compareString(payload.password, user.password);
     if (!isPasswordMatched) {
       throw new AppError(ErrorCode.INVALID_CREDENTIALS);
@@ -207,12 +218,7 @@ export class AuthService {
     });
 
     const hashRefreshToken = await hashString(refreshToken);
-    await this.redisService.set(
-      getRefreshTokenKey(user.id),
-      hashRefreshToken,
-      REFRESH_TOKEN_TTL
-    );
-
+    await this.redisService.set(getRefreshTokenKey(user.id), hashRefreshToken, REFRESH_TOKEN_TTL);
 
     //TODO: Bkav HoanNTh: Response login không trả về quá nhiều thông tin như thế này, sau cần có thông tin gì thì call API để lấy
     //FIXME: Bkav VinhTQ: Done
@@ -238,6 +244,10 @@ export class AuthService {
     const user = await this.userRepository.findById(decoded.userId);
     if (!user) {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
+    }
+
+    if (!user.password) {
+      throw new AppError(ErrorCode.INVALID_CREDENTIALS, 'Account password has not been set');
     }
 
     const storedRefreshToken = await this.redisService.get<unknown>(getRefreshTokenKey(user.id));
@@ -285,6 +295,10 @@ export class AuthService {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
 
+    if (!user.password) {
+      throw new AppError(ErrorCode.INVALID_CREDENTIALS, 'Account password has not been set');
+    }
+
     const isCurrentPasswordMatched = await compareString(payload.currentPassword, user.password);
     if (!isCurrentPasswordMatched) {
       throw new AppError(ErrorCode.INVALID_CREDENTIALS, 'Current password is incorrect');
@@ -292,7 +306,10 @@ export class AuthService {
 
     const isSamePassword = await compareString(payload.newPassword, user.password);
     if (isSamePassword) {
-      throw new AppError(ErrorCode.BAD_REQUEST, 'New password must be different from current password');
+      throw new AppError(
+        ErrorCode.BAD_REQUEST,
+        'New password must be different from current password'
+      );
     }
 
     const confirmPasswordMatched = payload.newPassword === payload.confirmPassword;
@@ -306,6 +323,72 @@ export class AuthService {
       userId,
       password: newHashedPassword
     });
+
+    await this.redisService.delete(getRefreshTokenKey(userId));
+  }
+
+  /**
+   * Luôn trả kết quả giống nhau để không tiết lộ email có tồn tại trong hệ thống hay không.
+   */
+  async forgotPassword(payload: ForgotPasswordRequestDto): Promise<boolean> {
+    const email = payload.email.trim().toLowerCase();
+
+    const user = await this.userRepository.findByEmail(email);
+
+    if (!user) {
+      return true;
+    }
+    if (!user.active || !user.password) {
+      return true;
+    }
+
+    await this.accountLinkService.sendForgotPassword({
+      userId: user.id,
+      email: user.email,
+      fullName: user.fullName
+    });
+
+    return true;
+  }
+  /** * Đặt mật khẩu thông qua link email. * *
+   * Dùng cho:
+   * - INVITATION: user được admin mời và đặt mật khẩu lần đầu. *
+   * - FORGOT_PASSWORD: user quên mật khẩu và đặt mật khẩu mới. */
+  async setPasswordByToken(payload: SetPasswordRequestDto): Promise<void> {
+    const tokenData = await this.passwordSetupService.verifyToken(payload.token);
+    const user = await this.userRepository.findById(tokenData.userId);
+    if (!user) {
+      throw new AppError(ErrorCode.USER_NOT_FOUND);
+    }
+    const expectedPurpose = tokenData.purpose;
+
+    if (expectedPurpose === PASSWORD_TOKEN_PURPOSE.INVITATION && user.active) {
+      throw new AppError(ErrorCode.INVALID_TOKEN);
+    }
+
+    if (
+      expectedPurpose === PASSWORD_TOKEN_PURPOSE.FORGOT_PASSWORD &&
+      (!user.active || !user.password)
+    ) {
+      throw new AppError(ErrorCode.ACCOUNT_NOT_ACTIVE);
+    }
+
+    if (expectedPurpose === PASSWORD_TOKEN_PURPOSE.FORGOT_PASSWORD && user.active) {
+      const isSamePassword = await compareString(payload.newPassword, user.password);
+      if (isSamePassword) {
+        throw new AppError(
+          ErrorCode.BAD_REQUEST,
+          'New password must be different from current password'
+        );
+      }
+    }
+    const hashedPassword = await hashString(payload.newPassword);
+    await this.userRepository.updatePasswordAndSession({
+      userId: user.id,
+      password: hashedPassword
+    });
+
+    await this.passwordSetupService.consumeToken(payload.token);
   }
 
   /**
@@ -341,9 +424,12 @@ export class AuthService {
         await this.redisService.set(blacklistKey, 'revoked', timeLeftInSeconds);
       }
     }
-
-
   }
 }
 
-export const authService = new AuthService(userRepository);
+export const authService = new AuthService(
+  userRepository,
+  new RedisService(),
+  accountLinkService,
+  passwordSetupService
+);

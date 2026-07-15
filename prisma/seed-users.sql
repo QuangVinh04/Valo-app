@@ -1,22 +1,36 @@
 -- Manual seed for demo users.
--- Default password for every seeded user: 123456
+-- Default password for every seeded user: Demo@1234
+-- The password satisfies the current UI policy: 8+ chars, uppercase, lowercase,
+-- number, and special character. Re-running this script resets demo passwords.
 -- Run with:
 -- docker exec -i valo-postgres psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" < prisma/seed-users.sql
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 WITH ensured_group AS (
-  INSERT INTO "group" ("id", "name", "description", "createdAt", "updatedAt")
+  INSERT INTO "group" (
+    "id",
+    "name",
+    "description",
+    "permissions",
+    "isSystem",
+    "createdAt",
+    "updatedAt"
+  )
   VALUES (
     gen_random_uuid(),
     'user',
     'Regular users with limited access',
+    ARRAY['CHAT', 'CONV_C', 'CONV_R', 'CONV_U', 'CONV_D']::TEXT[],
+    true,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
   )
   ON CONFLICT ("name") DO UPDATE
   SET
-    "description" = COALESCE("group"."description", EXCLUDED."description"),
+    "description" = EXCLUDED."description",
+    "permissions" = EXCLUDED."permissions",
+    "isSystem" = true,
     "updatedAt" = CURRENT_TIMESTAMP
   RETURNING "id"
 ),
@@ -53,8 +67,8 @@ upserted_users AS (
     seed_users."email",
     seed_users."phoneNumber",
     seed_users."address",
-    '$2b$10$vNmgNT3MthG5d9SEMDSqVOAEZCVaGcYiYdSnZOXD8HFqxi1w2G5Ry',
-    false,
+    '$2b$10$Z6JAsYAyDKi2bVtyk1wH2.wh4QkLP0ZSk4cn8/HDq7tTX04haJyp.',
+    true,
     '{"theme":"dark","language":"vi"}'::jsonb,
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
@@ -64,6 +78,9 @@ upserted_users AS (
     "fullName" = EXCLUDED."fullName",
     "phoneNumber" = EXCLUDED."phoneNumber",
     "address" = EXCLUDED."address",
+    "password" = EXCLUDED."password",
+    "active" = true,
+    "settings" = EXCLUDED."settings",
     "updatedAt" = CURRENT_TIMESTAMP
   RETURNING "id", "email"
 )
