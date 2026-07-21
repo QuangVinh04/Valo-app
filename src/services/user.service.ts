@@ -2,15 +2,20 @@ import { ErrorCode } from '../constants/error-code.js';
 import { UserMapper } from '../mapper/user.mapper.js';
 import { GroupRepository, groupRepository } from '../repositories/group.repository.js';
 import { userRepository, UserRepository } from '../repositories/user.repository.js';
-import type { AssignUserGroupsRequestDto, BulkDeleteUsersResponseDto, CreatedUserDto, CreateUserRequestDto, UpdateUserRequestDto, UserListItemDto, UserResponseDto, UserSettingsDto, UserUpdateResponseDto } from '../types/user.type.js';
+import type {
+  AssignUserGroupsRequestDto,
+  BulkDeleteUsersResponseDto,
+  CreatedUserDto,
+  CreateUserRequestDto,
+  UpdateUserRequestDto,
+  UserListItemDto,
+  UserResponseDto,
+  UserSettingsDto,
+  UserUpdateResponseDto
+} from '../types/user.type.js';
 import AppError from '../utils/app-error.js';
-import {
-  buildPaginatedResult,
-  type PaginatedResult,
-  type PaginationOptions
-} from '../utils/pagination.util.js';
+import { buildPaginatedResult, type PaginatedResult, type PaginationOptions } from '../utils/pagination.util.js';
 import { accountLinkService, AccountLinkService } from './account-link.service.js';
-
 
 export interface UserListFilters {
   search?: string;
@@ -92,13 +97,11 @@ export class UserService {
       invitationEmailFailed: false
     });
 
-    await this.accountLinkService.sendInvitation(
-      {
-        email: user.email,
-        fullName: user.fullName,
-        userId: user.id
-      }
-    )
+    await this.accountLinkService.sendInvitation({
+      email: user.email,
+      fullName: user.fullName,
+      userId: user.id
+    });
 
     return { id: user.id };
   }
@@ -110,7 +113,7 @@ export class UserService {
       throw new AppError(ErrorCode.USER_NOT_FOUND);
     }
 
-    if (user.active || user.password !== null) {
+    if (!user.invitationEmailFailed) {
       throw new AppError(
         ErrorCode.BAD_REQUEST,
         'Only pending invited users can receive another invitation'
@@ -246,6 +249,5 @@ export class UserService {
     return ids;
   }
 }
-
 
 export const userService = new UserService(userRepository, groupRepository, accountLinkService);
