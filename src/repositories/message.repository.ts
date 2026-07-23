@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Message, Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../config/prisma.js';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
@@ -10,6 +10,9 @@ export interface CreateMessageInput {
   senderType: 'user' | 'assistant' | 'system';
   status?: MessageStatus;
   modelName?: string | null;
+  isUserStopped: boolean;
+  parentMessageId: string;
+  ancestors: string[];
 }
 
 export class MessageRepository {
@@ -20,27 +23,51 @@ export class MessageRepository {
   }
 
   async create(input: CreateMessageInput) {
-    const client = this.prisma as PrismaClient
-    return await client.$transaction(async (tx) => {
-      const message = await tx.message.create({
-        data: {
-          conversationId: input.conversationId,
-          content: input.content,
-          senderType: input.senderType,
-          status: input.status ?? (input.senderType === 'user' ? 'PENDING' : 'SUCCESS'),
-          modelName: input.modelName ?? null,
-          isUserStopped: false
-        }
-      });
-
-      await tx.conversation.update({
-        where: { id: input.conversationId },
-        data: { updatedAt: new Date() }
-      });
-
-      return message;
+    return this.prisma.message.create({
+      data: {
+        conversationId: input.conversationId,
+        content: input.content,
+        senderType: input.senderType,
+        parentMessageId: input.parentMessageId,
+        status: input.status ?? (input.senderType === 'user' ? 'PENDING' : 'SUCCESS'),
+        modelName: input.modelName ?? null,
+        isUserStopped: input.isUserStopped,
+        ancestors: input.ancestors
+      }
     });
   }
+  async findRecentBranchHistory(
+    targetMessageId: string,
+    ancestorIds: string[],
+    limit = 10
+  ): Promise<Pick<Message, 'senderType' | 'content'>[]> {
+    // Gộp mảng tổ tiên và id hiện tại thành chuỗi IDs đầy đủ của nhánh
+    const fullBranchIds = [...ancestorIds, targetMessageId];
+
+    // Lấy đúng số lượng tin nhắn mới nhất bằng phương pháp LIMIT + ORDER BY DESC
+    const messages = await this.prisma.message.findMany({
+      where: {
+        id: { in: fullBranchIds },
+        status: 'SUCCESS'
+      },
+      select: {
+        senderType: true,
+        content: true
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit
+    });
+    return messages.reverse();
+  }
+
+  async findAncestorIds(id: string): Promise<string[] | null> {
+    const message = await this.prisma.message.findUnique({
+      where: { id },
+      select: { ancestors: true }
+    });
+    return message ? message.ancestors : null;
+  }
+
 
   async findManyByConversationId(conversationId: string) {
     return this.prisma.message.findMany({
@@ -52,31 +79,14 @@ export class MessageRepository {
             fileName: true,
             mimeType: true,
             fileUrl: true,
-            fileSize: true,
-          },
-        },
+            fileSize: true
+          }
+        }
       },
-      orderBy: { createdAt: 'asc' },
-    });
-  }
-
-  async findRecentByConversationId(conversationId: string, take = 10) {
-    const messages = await this.prisma.message.findMany({
-      where: {
-        conversationId,
-        status: 'SUCCESS'
-      },
-      orderBy: { createdAt: 'desc' },
-      take,
-    });
-
-    return messages.reverse();
-  }
-
-  async updateStatus(messageId: string, status: MessageStatus) {
-    return this.prisma.message.update({
-      where: { id: messageId },
-      data: { status },
+      orderBy: [
+        { createdAt: 'asc' },
+        { id: 'asc' }
+      ]
     });
   }
 
@@ -91,12 +101,12 @@ export class MessageRepository {
     return client.$transaction(async (tx) => {
       const message = await tx.message.update({
         where: { id: messageId },
-        data: { content, status, isUserStopped },
+        data: { content, status, isUserStopped }
       });
 
       await tx.conversation.update({
         where: { id: message.conversationId },
-        data: { updatedAt: new Date() },
+        data: { updatedAt: new Date() }
       });
 
       return message;
@@ -105,14 +115,9 @@ export class MessageRepository {
 
   async findById(messageId: string) {
     return this.prisma.message.findUnique({
-      where: { id: messageId },
-    })
-
+      where: { id: messageId }
+    });
   }
 }
 
-export const messageRepository = new MessageRepository(
-  PrismaService.getInstance().client
-);
-
-export default MessageRepository;
+export const messageRepository = new MessageRepository(PrismaService.getInstance().client);

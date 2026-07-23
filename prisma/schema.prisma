@@ -49,6 +49,8 @@ model Message {
   id             String        @id @default(uuid()) @db.Uuid
   conversationId String        @db.Uuid
   senderType     String        @default("user")
+  parentMessageId String
+  ancestors      String[]      @default([])
   status         MessageStatus @default(PENDING)
   modelName      String?
   content        String        @db.Text

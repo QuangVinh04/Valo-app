@@ -85,7 +85,9 @@ export class MessageController {
           conversationId: prepared.conversationId,
           userMessage: {
             ...prepared.userMessage,
-            fileUploads: incomingFiles
+            fileUploads: incomingFiles.length
+              ? incomingFiles
+              : prepared.userMessage.fileUploads
           },
           assistantMessage: prepared.assistantMessage
         })}\n\n`

@@ -1,23 +1,20 @@
-import { PrismaClient, Prisma, Conversation } from "@prisma/client";
-import { PrismaService } from "../config/prisma.js";
-
-
+import { Conversation, Prisma, PrismaClient } from '@prisma/client';
+import { PrismaService } from '../config/prisma.js';
 
 type DbClient = PrismaClient | Prisma.TransactionClient;
 
 const conversationDetailSelect = {
   id: true,
   title: true,
-  modelName: true,
+  modelName: true
 } satisfies Prisma.ConversationSelect;
 
 const conversationUpdateSelect = {
   id: true,
   title: true,
   modelName: true,
-  updatedAt: true,
+  updatedAt: true
 } satisfies Prisma.ConversationSelect;
-
 
 export type ConversationDetail = Prisma.ConversationGetPayload<{
   select: typeof conversationDetailSelect;
@@ -28,7 +25,6 @@ export type ConversationUpdateResult = Prisma.ConversationGetPayload<{
 }>;
 
 export type ConversationSummary = Pick<Conversation, 'id' | 'title' | 'updatedAt'>;
-
 
 export interface CreateConversationInput {
   title: string;
@@ -73,6 +69,13 @@ export class ConversationRepository {
       where: { id },
       data: updates,
       select: conversationUpdateSelect
+    });
+  }
+
+  async updateTimestamp(id: string): Promise<void> {
+    await this.prisma.conversation.update({
+      where: { id: id },
+      data: { updatedAt: new Date() }
     });
   }
 
@@ -145,7 +148,6 @@ export class ConversationRepository {
     });
   }
 }
-
 
 const prismaService = PrismaService.getInstance();
 export const conversationRepository = new ConversationRepository(prismaService.client);
